@@ -46,6 +46,25 @@
       Perfil de visualização: você não pode registrar investimentos.
     </div>
 
+    <div class="cards-grid" style="margin-bottom:16px">
+      <div class="card">
+        <div class="card-label">Total de Investimentos (filtro atual)</div>
+        <div class="card-value" id="cardTotalInvestimentos">R$ 0,00</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Leandro Santos</div>
+        <div class="card-value" id="cardInvestLeandro">R$ 0,00</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Davi Mafioleti</div>
+        <div class="card-value" id="cardInvestDavi">R$ 0,00</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Rafael Furlan</div>
+        <div class="card-value" id="cardInvestRafael">R$ 0,00</div>
+      </div>
+    </div>
+
     <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:end">
       <div class="form-group" style="margin-bottom:0;min-width:180px">
         <label>Sócio</label>
@@ -93,7 +112,7 @@
 
 <div class="modal-overlay" id="modalInvestimento">
   <div class="modal" style="max-width:520px">
-    <h2>Novo Investimento</h2>
+    <h2 id="tituloModalInvestimento">Novo Investimento</h2>
     <div class="form-group">
       <label>Sócio *</label>
       <select id="f-socio" required>
@@ -119,18 +138,42 @@
     </div>
     <div class="form-actions">
       <button class="btn" id="btnCancelarInvestimento" style="background:#eee;color:#333">Cancelar</button>
-      <button class="btn btn-primary" id="btnSalvarInvestimento">Salvar</button>
+      <button class="btn btn-primary" id="btnSalvarInvestimento">Salvar Investimento</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalHistoricoInvestimento">
+  <div class="modal" style="max-width:760px">
+    <h2>Histórico de Alterações</h2>
+    <div id="resumoHistoricoInvestimento" style="font-size:12px;color:#666;margin-bottom:10px"></div>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Quando</th>
+            <th>Usuário</th>
+            <th>Antes</th>
+            <th>Depois</th>
+          </tr>
+        </thead>
+        <tbody id="tbHistoricoInvestimento"></tbody>
+      </table>
+    </div>
+    <div class="form-actions">
+      <button class="btn" id="btnFecharHistoricoInvestimento" style="background:#eee;color:#333">Fechar</button>
     </div>
   </div>
 </div>
 
 <script type="module">
   import { requireAuth, preencherSidebar, logout, db, fmt, fmtData,
-    collection, getDocs, addDoc, deleteDoc, doc, query, orderBy, Timestamp }
+    collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, Timestamp }
     from "./app.js";
 
   let userData;
   let investimentosCache = [];
+  let investimentoEditandoId = null;
 
   requireAuth(async (user, ud) => {
     userData = ud;
@@ -149,24 +192,41 @@
   });
 
   function initEventos() {
-    document.getElementById("btnNovoInvestimento").addEventListener("click", abrirModal);
+    document.getElementById("btnNovoInvestimento").addEventListener("click", () => abrirModal());
     document.getElementById("btnCancelarInvestimento").addEventListener("click", fecharModal);
     document.getElementById("btnSalvarInvestimento").addEventListener("click", salvarInvestimento);
+    document.getElementById("btnFecharHistoricoInvestimento").addEventListener("click", fecharModalHistoricoInvestimento);
     document.getElementById("btnAplicarFiltro").addEventListener("click", aplicarFiltro);
     document.getElementById("btnLimparFiltro").addEventListener("click", limparFiltro);
     document.getElementById("filtroSocio").addEventListener("change", aplicarFiltro);
   }
 
-  function abrirModal() {
-    document.getElementById("f-socio").value = "";
-    document.getElementById("f-valorInvestimento").value = "";
-    document.getElementById("f-dataInvestimento").value = new Date().toISOString().split("T")[0];
-    document.getElementById("f-obsInvestimento").value = "";
+  function abrirModal(item = null) {
+    investimentoEditandoId = item?.id || null;
+    document.getElementById("tituloModalInvestimento").textContent = investimentoEditandoId ? "Editar Investimento" : "Novo Investimento";
+    document.getElementById("btnSalvarInvestimento").textContent = investimentoEditandoId ? "Salvar Alteracoes" : "Salvar Investimento";
+
+    document.getElementById("f-socio").value = item?.socio || "";
+    document.getElementById("f-valorInvestimento").value = item?.valor ?? "";
+    document.getElementById("f-dataInvestimento").value = formatarDataInput(item?.dataReferencia || item?.criadoEm) || new Date().toISOString().split("T")[0];
+    document.getElementById("f-obsInvestimento").value = item?.obs || "";
     document.getElementById("modalInvestimento").classList.add("open");
   }
 
   function fecharModal() {
+    investimentoEditandoId = null;
     document.getElementById("modalInvestimento").classList.remove("open");
+  }
+
+  function fecharModalHistoricoInvestimento() {
+    document.getElementById("modalHistoricoInvestimento").classList.remove("open");
+  }
+
+  function formatarDataInput(ts) {
+    if (!ts) return "";
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toISOString().split("T")[0];
   }
 
   async function salvarInvestimento() {
@@ -180,14 +240,54 @@
       return;
     }
 
-    await addDoc(collection(db, "investimentos"), {
-      socio,
-      valor,
-      obs,
-      dataReferencia: data ? Timestamp.fromDate(new Date(`${data}T12:00:00`)) : Timestamp.now(),
-      criadoEm: Timestamp.now(),
-      criadoPor: userData.email || userData.nome || "usuario"
-    });
+    const dataReferencia = data ? Timestamp.fromDate(new Date(`${data}T12:00:00`)) : Timestamp.now();
+    const usuarioAlteracao = userData.email || userData.nome || "usuario";
+
+    if (!investimentoEditandoId) {
+      await addDoc(collection(db, "investimentos"), {
+        socio,
+        valor,
+        obs,
+        dataReferencia,
+        criadoEm: Timestamp.now(),
+        criadoPor: usuarioAlteracao,
+        historicoAlteracoes: []
+      });
+    } else {
+      const atual = investimentosCache.find(item => item.id === investimentoEditandoId);
+      if (!atual) {
+        alert("Nao foi possivel localizar o investimento para editar.");
+        return;
+      }
+
+      const historicoAtual = Array.isArray(atual.historicoAlteracoes) ? atual.historicoAlteracoes : [];
+      const historicoAlteracao = {
+        alteradoEm: Timestamp.now(),
+        alteradoPor: usuarioAlteracao,
+        antes: {
+          socio: atual.socio || "",
+          valor: Number(atual.valor || 0),
+          obs: atual.obs || "",
+          dataReferencia: atual.dataReferencia || atual.criadoEm || null
+        },
+        depois: {
+          socio,
+          valor,
+          obs,
+          dataReferencia
+        }
+      };
+
+      await updateDoc(doc(db, "investimentos", investimentoEditandoId), {
+        socio,
+        valor,
+        obs,
+        dataReferencia,
+        atualizadoEm: Timestamp.now(),
+        atualizadoPor: usuarioAlteracao,
+        historicoAlteracoes: [...historicoAtual, historicoAlteracao]
+      });
+    }
 
     fecharModal();
     await carregarInvestimentos();
@@ -243,20 +343,19 @@
     const tbody = document.getElementById("tbInvestimentos");
     tbody.innerHTML = "";
 
+    atualizarCardsResumo(lista);
+
     if (!lista.length) {
       tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#aaa">Nenhum investimento encontrado</td></tr>`;
       return;
     }
 
-    let total = 0;
-    const totaisPorSocio = {};
     lista.forEach(item => {
-      total += Number(item.valor || 0);
       const socioNome = item.socio || "—";
-      totaisPorSocio[socioNome] = (totaisPorSocio[socioNome] || 0) + Number(item.valor || 0);
-      const acoes = userData.perfil !== "visualizacao"
-        ? `<button class="btn btn-danger btn-sm" onclick="excluirInvestimento('${item.id}')">🗑️</button>`
-        : "—";
+      const botoesEdicao = userData.perfil !== "visualizacao"
+        ? `<button class="btn btn-primary btn-sm" onclick="editarInvestimento('${item.id}')">✏️</button><button class="btn btn-danger btn-sm" onclick="excluirInvestimento('${item.id}')">🗑️</button>`
+        : "";
+      const acoes = `<div style="display:flex;gap:6px"><button class="btn btn-sm" style="background:#e8f0fe;color:#1a73e8" onclick="verHistoricoInvestimento('${item.id}')">👁</button>${botoesEdicao}</div>`;
 
       tbody.innerHTML += `
         <tr>
@@ -267,27 +366,87 @@
           <td>${acoes}</td>
         </tr>`;
     });
-
-    tbody.innerHTML += `
-      <tr style="background:#f8fafc;font-weight:700;border-top:2px solid #e5e7eb">
-        <td>TOTAL</td>
-        <td>${fmt(total)}</td>
-        <td colspan="3">Conferência da listagem atual</td>
-      </tr>`;
-
-    // Totalizador por sócio
-    const sociosFixos = ["Leandro Santos", "Davi Mafioleti", "Rafael Furlan"];
-    tbody.innerHTML += `<tr style="background:#f5f5f5;border-top:1px solid #ddd;height:8px"><td colspan="5"></td></tr>`;
-    sociosFixos.forEach(socio => {
-      const valor = totaisPorSocio[socio] || 0;
-      tbody.innerHTML += `
-        <tr style="background:#fafafa;font-size:14px">
-          <td>${socio}</td>
-          <td>${fmt(valor)}</td>
-          <td colspan="3"></td>
-        </tr>`;
-    });
   }
+
+  function atualizarCardsResumo(lista) {
+    const totaisPorSocio = {
+      "Leandro Santos": 0,
+      "Davi Mafioleti": 0,
+      "Rafael Furlan": 0
+    };
+    let total = 0;
+
+    lista.forEach(item => {
+      const valor = Number(item.valor || 0);
+      total += valor;
+      if (Object.prototype.hasOwnProperty.call(totaisPorSocio, item.socio)) {
+        totaisPorSocio[item.socio] += valor;
+      }
+    });
+
+    document.getElementById("cardTotalInvestimentos").textContent = fmt(total);
+    document.getElementById("cardInvestLeandro").textContent = fmt(totaisPorSocio["Leandro Santos"]);
+    document.getElementById("cardInvestDavi").textContent = fmt(totaisPorSocio["Davi Mafioleti"]);
+    document.getElementById("cardInvestRafael").textContent = fmt(totaisPorSocio["Rafael Furlan"]);
+  }
+
+  window.editarInvestimento = (id) => {
+    const item = investimentosCache.find(registro => registro.id === id);
+    if (!item) {
+      alert("Investimento nao encontrado.");
+      return;
+    }
+    abrirModal(item);
+  };
+
+  window.verHistoricoInvestimento = (id) => {
+    const item = investimentosCache.find(registro => registro.id === id);
+    if (!item) {
+      alert("Investimento nao encontrado.");
+      return;
+    }
+
+    const tbody = document.getElementById("tbHistoricoInvestimento");
+    const resumo = document.getElementById("resumoHistoricoInvestimento");
+    const historico = Array.isArray(item.historicoAlteracoes) ? item.historicoAlteracoes : [];
+
+    resumo.textContent = `${item.socio || "—"} | Valor atual: ${fmt(item.valor || 0)} | Data atual: ${fmtData(item.dataReferencia || item.criadoEm)}`;
+    tbody.innerHTML = "";
+
+    if (!historico.length) {
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#888">Sem alterações registradas até o momento.</td></tr>`;
+    } else {
+      const historicoOrdenado = [...historico].sort((a, b) => {
+        const ta = a.alteradoEm?.toMillis ? a.alteradoEm.toMillis() : new Date(a.alteradoEm || 0).getTime();
+        const tb = b.alteradoEm?.toMillis ? b.alteradoEm.toMillis() : new Date(b.alteradoEm || 0).getTime();
+        return tb - ta;
+      });
+
+      historicoOrdenado.forEach(registro => {
+        const antes = registro.antes || {};
+        const depois = registro.depois || {};
+        tbody.innerHTML += `
+          <tr>
+            <td>${fmtData(registro.alteradoEm)}</td>
+            <td>${registro.alteradoPor || "—"}</td>
+            <td>
+              Sócio: ${antes.socio || "—"}<br/>
+              Valor: ${fmt(antes.valor || 0)}<br/>
+              Data: ${fmtData(antes.dataReferencia)}<br/>
+              Obs: ${antes.obs || "—"}
+            </td>
+            <td>
+              Sócio: ${depois.socio || "—"}<br/>
+              Valor: ${fmt(depois.valor || 0)}<br/>
+              Data: ${fmtData(depois.dataReferencia)}<br/>
+              Obs: ${depois.obs || "—"}
+            </td>
+          </tr>`;
+      });
+    }
+
+    document.getElementById("modalHistoricoInvestimento").classList.add("open");
+  };
 
   window.excluirInvestimento = async (id) => {
     if (!confirm("Excluir este investimento?")) return;

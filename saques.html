@@ -46,6 +46,25 @@
       Perfil de visualização: você não pode registrar saques.
     </div>
 
+    <div class="cards-grid" style="margin-bottom:16px">
+      <div class="card">
+        <div class="card-label">Total de Saques/Distribuição (filtro atual)</div>
+        <div class="card-value" id="cardTotalSaques">R$ 0,00</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Leandro Santos</div>
+        <div class="card-value" id="cardSaqueLeandro">R$ 0,00</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Davi Mafioleti</div>
+        <div class="card-value" id="cardSaqueDavi">R$ 0,00</div>
+      </div>
+      <div class="card">
+        <div class="card-label">Rafael Furlan</div>
+        <div class="card-value" id="cardSaqueRafael">R$ 0,00</div>
+      </div>
+    </div>
+
     <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:end">
       <div class="form-group" style="margin-bottom:0;min-width:180px">
         <label>Sócio</label>
@@ -102,7 +121,7 @@
 
 <div class="modal-overlay" id="modalSaque">
   <div class="modal" style="max-width:540px">
-    <h2>Novo Registro</h2>
+    <h2 id="tituloModalSaque">Novo Registro</h2>
     <div class="form-row">
       <div class="form-group">
         <label>Sócio *</label>
@@ -137,18 +156,42 @@
     </div>
     <div class="form-actions">
       <button class="btn" id="btnCancelarSaque" style="background:#eee;color:#333">Cancelar</button>
-      <button class="btn btn-primary" id="btnSalvarSaque">Salvar</button>
+      <button class="btn btn-primary" id="btnSalvarSaque">Salvar Registro</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalHistoricoSaque">
+  <div class="modal" style="max-width:760px">
+    <h2>Histórico de Alterações</h2>
+    <div id="resumoHistoricoSaque" style="font-size:12px;color:#666;margin-bottom:10px"></div>
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Quando</th>
+            <th>Usuário</th>
+            <th>Antes</th>
+            <th>Depois</th>
+          </tr>
+        </thead>
+        <tbody id="tbHistoricoSaque"></tbody>
+      </table>
+    </div>
+    <div class="form-actions">
+      <button class="btn" id="btnFecharHistoricoSaque" style="background:#eee;color:#333">Fechar</button>
     </div>
   </div>
 </div>
 
 <script type="module">
   import { requireAuth, preencherSidebar, logout, db, fmt, fmtData,
-    collection, getDocs, addDoc, deleteDoc, doc, query, orderBy, Timestamp }
+    collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy, Timestamp }
     from "./app.js";
 
   let userData;
   let saquesCache = [];
+  let saqueEditandoId = null;
 
   requireAuth(async (user, ud) => {
     userData = ud;
@@ -167,25 +210,42 @@
   });
 
   function initEventos() {
-    document.getElementById("btnNovoSaque").addEventListener("click", abrirModal);
+    document.getElementById("btnNovoSaque").addEventListener("click", () => abrirModal());
     document.getElementById("btnCancelarSaque").addEventListener("click", fecharModal);
     document.getElementById("btnSalvarSaque").addEventListener("click", salvarSaque);
+    document.getElementById("btnFecharHistoricoSaque").addEventListener("click", fecharModalHistoricoSaque);
     document.getElementById("btnAplicarFiltro").addEventListener("click", aplicarFiltro);
     document.getElementById("btnLimparFiltro").addEventListener("click", limparFiltro);
     document.getElementById("filtroSocio").addEventListener("change", aplicarFiltro);
   }
 
-  function abrirModal() {
-    document.getElementById("f-socio").value = "";
-    document.getElementById("f-tipoSaque").value = "saque";
-    document.getElementById("f-valorSaque").value = "";
-    document.getElementById("f-dataSaque").value = new Date().toISOString().split("T")[0];
-    document.getElementById("f-obsSaque").value = "";
+  function abrirModal(item = null) {
+    saqueEditandoId = item?.id || null;
+    document.getElementById("tituloModalSaque").textContent = saqueEditandoId ? "Editar Registro" : "Novo Registro";
+    document.getElementById("btnSalvarSaque").textContent = saqueEditandoId ? "Salvar Alteracoes" : "Salvar Registro";
+
+    document.getElementById("f-socio").value = item?.socio || "";
+    document.getElementById("f-tipoSaque").value = item?.tipo || "saque";
+    document.getElementById("f-valorSaque").value = item?.valor ?? "";
+    document.getElementById("f-dataSaque").value = formatarDataInput(item?.dataReferencia || item?.criadoEm) || new Date().toISOString().split("T")[0];
+    document.getElementById("f-obsSaque").value = item?.obs || "";
     document.getElementById("modalSaque").classList.add("open");
   }
 
   function fecharModal() {
+    saqueEditandoId = null;
     document.getElementById("modalSaque").classList.remove("open");
+  }
+
+  function fecharModalHistoricoSaque() {
+    document.getElementById("modalHistoricoSaque").classList.remove("open");
+  }
+
+  function formatarDataInput(ts) {
+    if (!ts) return "";
+    const d = ts.toDate ? ts.toDate() : new Date(ts);
+    if (Number.isNaN(d.getTime())) return "";
+    return d.toISOString().split("T")[0];
   }
 
   async function salvarSaque() {
@@ -200,15 +260,58 @@
       return;
     }
 
-    await addDoc(collection(db, "saques"), {
-      socio,
-      tipo,
-      valor,
-      obs,
-      dataReferencia: data ? Timestamp.fromDate(new Date(`${data}T12:00:00`)) : Timestamp.now(),
-      criadoEm: Timestamp.now(),
-      criadoPor: userData.email || userData.nome || "usuario"
-    });
+    const dataReferencia = data ? Timestamp.fromDate(new Date(`${data}T12:00:00`)) : Timestamp.now();
+    const usuarioAlteracao = userData.email || userData.nome || "usuario";
+
+    if (!saqueEditandoId) {
+      await addDoc(collection(db, "saques"), {
+        socio,
+        tipo,
+        valor,
+        obs,
+        dataReferencia,
+        criadoEm: Timestamp.now(),
+        criadoPor: usuarioAlteracao,
+        historicoAlteracoes: []
+      });
+    } else {
+      const atual = saquesCache.find(item => item.id === saqueEditandoId);
+      if (!atual) {
+        alert("Nao foi possivel localizar o registro para editar.");
+        return;
+      }
+
+      const historicoAtual = Array.isArray(atual.historicoAlteracoes) ? atual.historicoAlteracoes : [];
+      const historicoAlteracao = {
+        alteradoEm: Timestamp.now(),
+        alteradoPor: usuarioAlteracao,
+        antes: {
+          socio: atual.socio || "",
+          tipo: atual.tipo || "saque",
+          valor: Number(atual.valor || 0),
+          obs: atual.obs || "",
+          dataReferencia: atual.dataReferencia || atual.criadoEm || null
+        },
+        depois: {
+          socio,
+          tipo,
+          valor,
+          obs,
+          dataReferencia
+        }
+      };
+
+      await updateDoc(doc(db, "saques", saqueEditandoId), {
+        socio,
+        tipo,
+        valor,
+        obs,
+        dataReferencia,
+        atualizadoEm: Timestamp.now(),
+        atualizadoPor: usuarioAlteracao,
+        historicoAlteracoes: [...historicoAtual, historicoAlteracao]
+      });
+    }
 
     fecharModal();
     await carregarSaques();
@@ -267,21 +370,20 @@
     const tbody = document.getElementById("tbSaques");
     tbody.innerHTML = "";
 
+    atualizarCardsResumo(lista);
+
     if (!lista.length) {
       tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#aaa">Nenhum registro encontrado</td></tr>`;
       return;
     }
 
-    let total = 0;
-    const totaisPorSocio = {};
     lista.forEach(item => {
-      total += Number(item.valor || 0);
       const socioNome = item.socio || "—";
-      totaisPorSocio[socioNome] = (totaisPorSocio[socioNome] || 0) + Number(item.valor || 0);
       const tipoLabel = item.tipo === "distribuicao_lucro" ? "Distribuição de Lucro" : "Saque";
-      const acoes = userData.perfil !== "visualizacao"
-        ? `<button class="btn btn-danger btn-sm" onclick="excluirSaque('${item.id}')">🗑️</button>`
-        : "—";
+      const botoesEdicao = userData.perfil !== "visualizacao"
+        ? `<button class="btn btn-primary btn-sm" onclick="editarSaque('${item.id}')">✏️</button><button class="btn btn-danger btn-sm" onclick="excluirSaque('${item.id}')">🗑️</button>`
+        : "";
+      const acoes = `<div style="display:flex;gap:6px"><button class="btn btn-sm" style="background:#e8f0fe;color:#1a73e8" onclick="verHistoricoSaque('${item.id}')">👁</button>${botoesEdicao}</div>`;
 
       tbody.innerHTML += `
         <tr>
@@ -293,29 +395,93 @@
           <td>${acoes}</td>
         </tr>`;
     });
-
-    tbody.innerHTML += `
-      <tr style="background:#f8fafc;font-weight:700;border-top:2px solid #e5e7eb">
-        <td>TOTAL</td>
-        <td>—</td>
-        <td>${fmt(total)}</td>
-        <td colspan="3">Conferência da listagem atual</td>
-      </tr>`;
-
-    // Totalizador por sócio
-    const sociosFixos = ["Leandro Santos", "Davi Mafioleti", "Rafael Furlan"];
-    tbody.innerHTML += `<tr style="background:#f5f5f5;border-top:1px solid #ddd;height:8px"><td colspan="6"></td></tr>`;
-    sociosFixos.forEach(socio => {
-      const valor = totaisPorSocio[socio] || 0;
-      tbody.innerHTML += `
-        <tr style="background:#fafafa;font-size:14px">
-          <td>${socio}</td>
-          <td>—</td>
-          <td>${fmt(valor)}</td>
-          <td colspan="3"></td>
-        </tr>`;
-    });
   }
+
+  function atualizarCardsResumo(lista) {
+    const totaisPorSocio = {
+      "Leandro Santos": 0,
+      "Davi Mafioleti": 0,
+      "Rafael Furlan": 0
+    };
+    let total = 0;
+
+    lista.forEach(item => {
+      const valor = Number(item.valor || 0);
+      total += valor;
+      if (Object.prototype.hasOwnProperty.call(totaisPorSocio, item.socio)) {
+        totaisPorSocio[item.socio] += valor;
+      }
+    });
+
+    document.getElementById("cardTotalSaques").textContent = fmt(total);
+    document.getElementById("cardSaqueLeandro").textContent = fmt(totaisPorSocio["Leandro Santos"]);
+    document.getElementById("cardSaqueDavi").textContent = fmt(totaisPorSocio["Davi Mafioleti"]);
+    document.getElementById("cardSaqueRafael").textContent = fmt(totaisPorSocio["Rafael Furlan"]);
+  }
+
+  window.editarSaque = (id) => {
+    const item = saquesCache.find(registro => registro.id === id);
+    if (!item) {
+      alert("Registro nao encontrado.");
+      return;
+    }
+    abrirModal(item);
+  };
+
+  window.verHistoricoSaque = (id) => {
+    const item = saquesCache.find(registro => registro.id === id);
+    if (!item) {
+      alert("Registro nao encontrado.");
+      return;
+    }
+
+    const tbody = document.getElementById("tbHistoricoSaque");
+    const resumo = document.getElementById("resumoHistoricoSaque");
+    const historico = Array.isArray(item.historicoAlteracoes) ? item.historicoAlteracoes : [];
+    const tipoAtual = item.tipo === "distribuicao_lucro" ? "Distribuição de Lucro" : "Saque";
+
+    resumo.textContent = `${item.socio || "—"} | Tipo atual: ${tipoAtual} | Valor atual: ${fmt(item.valor || 0)} | Data atual: ${fmtData(item.dataReferencia || item.criadoEm)}`;
+    tbody.innerHTML = "";
+
+    if (!historico.length) {
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#888">Sem alterações registradas até o momento.</td></tr>`;
+    } else {
+      const historicoOrdenado = [...historico].sort((a, b) => {
+        const ta = a.alteradoEm?.toMillis ? a.alteradoEm.toMillis() : new Date(a.alteradoEm || 0).getTime();
+        const tb = b.alteradoEm?.toMillis ? b.alteradoEm.toMillis() : new Date(b.alteradoEm || 0).getTime();
+        return tb - ta;
+      });
+
+      historicoOrdenado.forEach(registro => {
+        const antes = registro.antes || {};
+        const depois = registro.depois || {};
+        const tipoAntes = antes.tipo === "distribuicao_lucro" ? "Distribuição de Lucro" : "Saque";
+        const tipoDepois = depois.tipo === "distribuicao_lucro" ? "Distribuição de Lucro" : "Saque";
+
+        tbody.innerHTML += `
+          <tr>
+            <td>${fmtData(registro.alteradoEm)}</td>
+            <td>${registro.alteradoPor || "—"}</td>
+            <td>
+              Sócio: ${antes.socio || "—"}<br/>
+              Tipo: ${tipoAntes}<br/>
+              Valor: ${fmt(antes.valor || 0)}<br/>
+              Data: ${fmtData(antes.dataReferencia)}<br/>
+              Obs: ${antes.obs || "—"}
+            </td>
+            <td>
+              Sócio: ${depois.socio || "—"}<br/>
+              Tipo: ${tipoDepois}<br/>
+              Valor: ${fmt(depois.valor || 0)}<br/>
+              Data: ${fmtData(depois.dataReferencia)}<br/>
+              Obs: ${depois.obs || "—"}
+            </td>
+          </tr>`;
+      });
+    }
+
+    document.getElementById("modalHistoricoSaque").classList.add("open");
+  };
 
   window.excluirSaque = async (id) => {
     if (!confirm("Excluir este registro?")) return;
