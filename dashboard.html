@@ -44,11 +44,46 @@
           <option value="caixa">Caixa</option>
         </select>
       </div>
-      <div class="form-group" style="margin-bottom:0;min-width:180px">
-        <label>Contabilidade Mensal (R$)</label>
-        <input type="number" id="f-contabilidade" step="0.01"/>
-      </div>
       <button class="btn btn-primary" id="btnSalvarFinanceiro" style="height:38px">Salvar Config.</button>
+    </div>
+
+    <div style="margin-bottom:12px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
+      <div style="background:#f9fafb;padding:12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center" id="btnToggleContabilidade">
+        <h2 style="margin:0;font-size:16px">Vigências de Contabilidade (R$/mês)</h2>
+        <span style="font-size:18px;transition:transform 0.3s" id="iconToggleContabilidade">▼</span>
+      </div>
+      <div id="secaoContabilidade" style="padding:16px;display:none">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:10px">
+          <div class="form-group" style="margin-bottom:0;min-width:160px">
+            <label>Mês Inicial</label>
+            <input type="month" id="f-contInicio"/>
+          </div>
+          <div class="form-group" style="margin-bottom:0;min-width:160px">
+            <label>Mês Final</label>
+            <input type="month" id="f-contFim"/>
+          </div>
+          <div class="form-group" style="margin-bottom:0;min-width:160px">
+            <label>Valor Mensal (R$)</label>
+            <input type="number" id="f-contValor" step="0.01" placeholder="Ex: 350.00"/>
+          </div>
+          <button class="btn btn-primary btn-sm" id="btnAddContabilidade" style="height:38px">Adicionar Vigência</button>
+        </div>
+        <div style="border:1px solid #e5e7eb;border-radius:6px;overflow:hidden">
+          <table style="width:100%">
+            <thead style="background:#f5f5f5">
+              <tr>
+                <th style="padding:10px;text-align:left">Início</th>
+                <th style="padding:10px;text-align:left">Fim</th>
+                <th style="padding:10px;text-align:left">Valor/mês</th>
+                <th style="padding:10px;text-align:left">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tbContabilidade">
+              <tr><td colspan="4" style="text-align:center;color:#aaa;padding:12px">Nenhuma vigência cadastrada</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <div style="margin-bottom:20px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
@@ -202,7 +237,8 @@
 
   const CONFIG_FINANCEIRO_REF = doc(db, "configuracoes", "dashboardFinanceiro");
   const CONFIG_IMPOSTOS_REF = doc(db, "configuracoes", "aliquotasImposto");
-  let contabilidadeMensal = 250;
+  const CONFIG_CONTABILIDADE_REF = doc(db, "configuracoes", "contabilidadeVigencias");
+  let vigenciasContabilidade = [];
   let produtosCache = [];
   let vendasCache = [];
   let parcelasCache = [];
@@ -216,6 +252,7 @@
     document.getElementById("f-mesRef").value = new Date().toISOString().slice(0, 7);
     await carregarConfiguracaoFinanceira();
     await carregarAliquotasImposto();
+    await carregarVigenciasContabilidade();
     await carregarDadosBase();
     await atualizarDashboard();
 
@@ -223,6 +260,16 @@
     document.getElementById("f-regime").addEventListener("change", atualizarDashboard);
     document.getElementById("btnSalvarFinanceiro").addEventListener("click", salvarConfiguracaoFinanceira);
     document.getElementById("btnAddAliquota").addEventListener("click", adicionarAliquotaImposto);
+    document.getElementById("btnAddContabilidade").addEventListener("click", adicionarVigenciaContabilidade);
+
+    // Toggle contabilidade
+    document.getElementById("btnToggleContabilidade").addEventListener("click", () => {
+      const secao = document.getElementById("secaoContabilidade");
+      const icon = document.getElementById("iconToggleContabilidade");
+      const isOpen = secao.style.display !== "none";
+      secao.style.display = isOpen ? "none" : "block";
+      icon.style.transform = isOpen ? "rotate(0deg)" : "rotate(180deg)";
+    });
     
     // Listeners para toggle de aliquotas
     document.getElementById("btnToggleAliquotas").addEventListener("click", () => {
@@ -397,22 +444,102 @@
     document.getElementById("modalDetalhamentoCusto").classList.add("open");
   }
 
-  async function carregarConfiguracaoFinanceira() {
-    const snap = await getDoc(CONFIG_FINANCEIRO_REF);
-    if (snap.exists()) {
-      const valor = Number(snap.data()?.contabilidadeMensal);
-      contabilidadeMensal = Number.isFinite(valor) ? valor : 250;
+  function getContabilidadePorMes(mesRef, fallback = 0) {
+    if (!mesRef) return fallback;
+    const match = vigenciasContabilidade.find(v => intervaloMesInclui(mesRef, v.inicioMes, v.fimMes));
+    if (match) return Number(match.valor);
+    return Number.isFinite(Number(fallback)) ? Number(fallback) : 0;
+  }
+
+  async function carregarVigenciasContabilidade() {
+    const snap = await getDoc(CONFIG_CONTABILIDADE_REF);
+    if (!snap.exists()) {
+      vigenciasContabilidade = [];
+      renderVigenciasContabilidade();
+      return;
     }
-    document.getElementById("f-contabilidade").value = contabilidadeMensal.toFixed(2);
+    const lista = Array.isArray(snap.data()?.vigencias) ? snap.data().vigencias : [];
+    vigenciasContabilidade = lista
+      .filter(v => v?.inicioMes && v?.fimMes && Number.isFinite(Number(v.valor)))
+      .map(v => ({
+        inicioMes: String(v.inicioMes),
+        fimMes: String(v.fimMes),
+        valor: Number(v.valor)
+      }))
+      .sort((a, b) => a.inicioMes.localeCompare(b.inicioMes));
+    renderVigenciasContabilidade();
+  }
+
+  function renderVigenciasContabilidade() {
+    const tbody = document.getElementById("tbContabilidade");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+    if (!vigenciasContabilidade.length) {
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#aaa">Nenhuma vigência cadastrada</td></tr>`;
+      return;
+    }
+    vigenciasContabilidade.forEach((item, index) => {
+      tbody.innerHTML += `
+        <tr>
+          <td>${item.inicioMes}</td>
+          <td>${item.fimMes}</td>
+          <td>${fmt(item.valor)}/mês</td>
+          <td><button class="btn btn-danger btn-sm" onclick="removerVigenciaContabilidade(${index})">Excluir</button></td>
+        </tr>`;
+    });
+  }
+
+  async function salvarVigenciasContabilidade() {
+    await setDoc(CONFIG_CONTABILIDADE_REF, {
+      vigencias: vigenciasContabilidade,
+      atualizadoEm: Timestamp.now()
+    }, { merge: true });
+  }
+
+  async function adicionarVigenciaContabilidade() {
+    const inicioMes = document.getElementById("f-contInicio").value;
+    const fimMes = document.getElementById("f-contFim").value;
+    const valor = Number(document.getElementById("f-contValor").value);
+
+    if (!inicioMes || !fimMes || !Number.isFinite(valor) || valor < 0) {
+      alert("Informe mês inicial, mês final e valor válido.");
+      return;
+    }
+    if (inicioMes > fimMes) {
+      alert("O mês inicial deve ser menor ou igual ao mês final.");
+      return;
+    }
+    const sobrepoe = vigenciasContabilidade.some(v =>
+      intervalosSobrepostos(inicioMes, fimMes, v.inicioMes, v.fimMes)
+    );
+    if (sobrepoe) {
+      alert("Já existe vigência para esse período. Não é permitido sobrepor datas.");
+      return;
+    }
+    vigenciasContabilidade.push({ inicioMes, fimMes, valor: roundMoney(valor) });
+    vigenciasContabilidade.sort((a, b) => a.inicioMes.localeCompare(b.inicioMes));
+    await salvarVigenciasContabilidade();
+    renderVigenciasContabilidade();
+    document.getElementById("f-contInicio").value = "";
+    document.getElementById("f-contFim").value = "";
+    document.getElementById("f-contValor").value = "";
+    await atualizarDashboard();
+  }
+
+  window.removerVigenciaContabilidade = async (index) => {
+    if (index < 0 || index >= vigenciasContabilidade.length) return;
+    if (!confirm("Excluir esta vigência de contabilidade?")) return;
+    vigenciasContabilidade.splice(index, 1);
+    await salvarVigenciasContabilidade();
+    renderVigenciasContabilidade();
+    await atualizarDashboard();
+  };
+
+  async function carregarConfiguracaoFinanceira() {
+    // Legacy: método mantido para futuras configurações financeiras
   }
 
   async function salvarConfiguracaoFinanceira() {
-    const valor = Number(document.getElementById("f-contabilidade").value);
-    contabilidadeMensal = Number.isFinite(valor) ? valor : 250;
-    await setDoc(CONFIG_FINANCEIRO_REF, {
-      contabilidadeMensal,
-      atualizadoEm: Timestamp.now()
-    });
     await atualizarDashboard();
   }
 
@@ -509,7 +636,8 @@
       document.getElementById("labelFaturamento").textContent = "Receita em Caixa";
     }
 
-    const custoTotal = roundMoney(custo + contabilidadeMensal);
+    const contabilidadeMes = getContabilidadePorMes(mesRef);
+    const custoTotal = roundMoney(custo + contabilidadeMes);
     const faturamentoTotal = roundMoney(faturamento);
     totalImposto = roundMoney(totalImposto);
     
@@ -519,11 +647,11 @@
     detalhamentoCustoAtual = {
       custoVendas: custoSemContabilidade - custoImposto,
       impostos: custoImposto,
-      contabilidade: contabilidadeMensal
+      contabilidade: contabilidadeMes
     };
     
     // Lucro antes de impostos = faturamento - custo (sem impostos)
-    const custoSemImpostos = roundMoney(custo + contabilidadeMensal - totalImposto);
+    const custoSemImpostos = roundMoney(custo + contabilidadeMes - totalImposto);
     const lucroAntesImpostos = roundMoney(faturamentoTotal - custoSemImpostos);
     
     const lucroLiquido = roundMoney(faturamentoTotal - custoTotal);
