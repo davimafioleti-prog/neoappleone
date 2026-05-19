@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Produtos</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<div id="loading">Carregando...</div>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><img src="logo.png.jpg" alt="NeoApple One"/> NeoApple One</div>
+    <nav>
+      <a href="dashboard.html"><span class="icon">🏠</span> Dashboard</a>
+      <a href="produtos.html" class="active"><span class="icon">📦</span> Produtos</a>
+      <a href="entradas.html"><span class="icon">📥</span> Entradas</a>
+      <a href="orcamentos.html"><span class="icon">🧾</span> Orçamentos</a>
+      <a href="vendas.html"><span class="icon">💰</span> Vendas</a>
+      <a href="parcelas.html"><span class="icon">💳</span> Parcelas</a>
+      <a href="investimentos.html"><span class="icon">🏦</span> Investimentos</a>
+      <a href="saques.html"><span class="icon">💸</span> Saques</a>
+      <a href="usuarios.html" id="menu-usuarios"><span class="icon">👥</span> Usuários</a>
+    </nav>
+    <div class="sidebar-footer">
+      <span class="badge" id="sb-perfil">—</span>
+      <strong id="sb-nome">—</strong>
+      <button class="btn-logout" id="btnLogout">Sair</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="page-title">Produtos & Estoque</div>
+    <div id="avisoVisualizacao" class="acesso-negado">
+      Perfil de visualização: você não pode cadastrar ou editar produtos.
+    </div>
+
+    <div class="table-container">
+      <div class="table-header">
+        <h2>Lista de Produtos</h2>
+        <div style="display:flex;gap:10px;align-items:center">
+          <button class="btn btn-sm" id="btnConfigMargens" style="background:#eee;color:#333">Margens por Categoria</button>
+          <button class="btn btn-primary btn-sm" id="btnNovoProduto">+ Novo Produto</button>
+        </div>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Produto</th>
+            <th>Categoria</th>
+            <th>Cor / Armazenamento</th>
+            <th>Quantidade</th>
+            <th>Preço Compra</th>
+            <th>Preço Venda Sugerido</th>
+            <th>Status</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="tbProdutos">
+          <tr><td colspan="8" style="text-align:center;color:#aaa">Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<!-- MODAL PRODUTO -->
+<div class="modal-overlay" id="modalProduto">
+  <div class="modal">
+    <h2 id="modalTitulo">Novo Produto</h2>
+
+    <div class="section-divider">Informações do Produto</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Nome / Modelo *</label>
+        <input type="text" id="f-nome" placeholder="Ex: iPhone 14 Pro"/>
+      </div>
+      <div class="form-group">
+        <label>Marca</label>
+        <input type="text" id="f-marca" placeholder="Ex: Apple"/>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Cor</label>
+        <input type="text" id="f-cor" placeholder="Ex: Preto Espacial"/>
+      </div>
+      <div class="form-group">
+        <label>Armazenamento</label>
+        <input type="text" id="f-armazenamento" placeholder="Ex: 256GB"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Categoria *</label>
+      <select id="f-categoria">
+        <option value="iphone_novo">iPhone Novo</option>
+        <option value="iphone_seminovo">iPhone Seminovo</option>
+        <option value="apple_watch">Apple Watch</option>
+        <option value="acessorios">Acessórios</option>
+        <option value="outros">Outros</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>IMEI / Número de Série</label>
+      <input type="text" id="f-imei" placeholder="Opcional"/>
+    </div>
+    <div class="form-group">
+      <label>Quantidade em Estoque *</label>
+      <input type="number" id="f-quantidade" value="1" min="0" step="1"/>
+    </div>
+
+    <div class="section-divider">Compra</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Preço de Compra (R$) *</label>
+        <input type="number" id="f-precoCompra" placeholder="0,00" step="0.01"/>
+      </div>
+      <div class="form-group">
+        <label>Frete de Compra (R$)</label>
+        <input type="number" id="f-freteCompra" placeholder="0,00" step="0.01"/>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Brinde / Acessório (R$)</label>
+        <input type="number" id="f-brinde" placeholder="0,00" step="0.01"/>
+      </div>
+      <div class="form-group">
+        <label>Forma de Pagamento Compra</label>
+        <select id="f-formaPagCompra">
+          <option value="à vista">À Vista</option>
+          <option value="parcelado">Parcelado</option>
+          <option value="pix">PIX</option>
+          <option value="outro">Outro</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Data da Compra</label>
+      <input type="date" id="f-dataCompra"/>
+    </div>
+
+    <div class="section-divider">Precificação</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Frete de Venda (R$)</label>
+        <input type="number" id="f-freteVenda" placeholder="0,00" step="0.01"/>
+      </div>
+      <div class="form-group">
+        <label>Imposto (%)</label>
+        <input type="number" id="f-imposto" value="9" step="0.1"/>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Margem de Lucro (%)</label>
+        <input type="number" id="f-margem" placeholder="Ex: 20" step="0.1"/>
+      </div>
+      <div class="form-group">
+        <label>Preço de Venda Sugerido (R$)</label>
+        <input type="number" id="f-precoVendaSugerido" placeholder="Calculado auto" step="0.01"/>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Preço Mínimo Aceitável (R$)</label>
+        <input type="number" id="f-precoMinimo" placeholder="Calculado auto" step="0.01" readonly
+          style="background:#f5f5f5"/>
+      </div>
+      <div class="form-group">
+        <label>Referência de Categoria</label>
+        <input type="text" id="f-margemRefInfo" readonly style="background:#f5f5f5"/>
+      </div>
+    </div>
+
+    <div class="section-divider">Status</div>
+    <div class="form-group">
+      <label>Status do Produto</label>
+      <select id="f-status">
+        <option value="estoque">Em Estoque</option>
+        <option value="reservado">Reservado</option>
+        <option value="vendido">Vendido</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Observações</label>
+      <textarea id="f-obs" rows="2" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:13px"></textarea>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn" id="btnCancelarProduto"
+        style="background:#eee;color:#333">Cancelar</button>
+      <button class="btn btn-primary" id="btnSalvarProduto">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalMargens">
+  <div class="modal modal-margens">
+    <h2>Margens por Categoria</h2>
+    <div class="table-container tabela-margens-wrap" style="box-shadow:none;border:1px solid #eee">
+      <table class="tabela-margens">
+        <thead>
+          <tr>
+            <th>Categoria</th>
+            <th>Margem Ideal (%)</th>
+            <th>Piso (%)</th>
+          </tr>
+        </thead>
+        <tbody id="tbConfigMargens"></tbody>
+      </table>
+    </div>
+    <div class="form-actions">
+      <button class="btn" id="btnCancelarMargens" style="background:#eee;color:#333">Cancelar</button>
+      <button class="btn btn-primary" id="btnSalvarMargens">Salvar Margens</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { requireAuth, preencherSidebar, logout, db, fmt, fmtData,
+    collection, getDocs, getDoc, setDoc, addDoc, updateDoc, deleteDoc, doc,
+    query, orderBy, Timestamp, calcPrecoFinal }
+    from "./app.js";
+
+  let userData;
+  let editandoId = null;
+  const CONFIG_MARGENS_REF = doc(db, "configuracoes", "precificacaoCategorias");
+  const CATEGORIAS_PADRAO = {
+    iphone_novo: {
+      nome: "iPhone Novo",
+      margemPadrao: 18,
+      margemMinima: 8
+    },
+    iphone_seminovo: {
+      nome: "iPhone Seminovo",
+      margemPadrao: 15,
+      margemMinima: 6
+    },
+    apple_watch: {
+      nome: "Apple Watch",
+      margemPadrao: 20,
+      margemMinima: 9
+    },
+    acessorios: {
+      nome: "Acessórios",
+      margemPadrao: 25,
+      margemMinima: 12
+    },
+    outros: {
+      nome: "Outros",
+      margemPadrao: 15,
+      margemMinima: 7
+    }
+  };
+  let categoriasConfig = JSON.parse(JSON.stringify(CATEGORIAS_PADRAO));
+
+  requireAuth(async (user, ud) => {
+    userData = ud;
+    preencherSidebar(ud);
+    document.getElementById("btnLogout").addEventListener("click", logout);
+
+    if (ud.perfil === "visualizacao") {
+      document.getElementById("avisoVisualizacao").style.display = "block";
+      document.getElementById("btnNovoProduto").style.display = "none";
+      document.getElementById("btnConfigMargens").style.display = "none";
+    }
+
+    await carregarConfiguracaoMargens();
+    carregarProdutos();
+    inicializarPrecificacao();
+  });
+
+  function categoriaInfo(categoria) {
+    return categoriasConfig[categoria] || categoriasConfig.outros;
+  }
+
+  async function carregarConfiguracaoMargens() {
+    const snap = await getDoc(CONFIG_MARGENS_REF);
+    if (!snap.exists()) {
+      categoriasConfig = JSON.parse(JSON.stringify(CATEGORIAS_PADRAO));
+      renderConfigMargens();
+      return;
+    }
+
+    const data = snap.data()?.categorias || {};
+    categoriasConfig = JSON.parse(JSON.stringify(CATEGORIAS_PADRAO));
+    Object.keys(categoriasConfig).forEach(chave => {
+      const atual = data[chave] || {};
+      if (Number.isFinite(Number(atual.margemPadrao))) {
+        categoriasConfig[chave].margemPadrao = Number(atual.margemPadrao);
+      }
+      if (Number.isFinite(Number(atual.margemMinima))) {
+        categoriasConfig[chave].margemMinima = Number(atual.margemMinima);
+      }
+    });
+    renderConfigMargens();
+  }
+
+  function renderConfigMargens() {
+    const tbody = document.getElementById("tbConfigMargens");
+    tbody.innerHTML = "";
+    Object.entries(categoriasConfig).forEach(([chave, info]) => {
+      tbody.innerHTML += `
+        <tr>
+          <td class="categoria-cell">${info.nome}</td>
+          <td><input class="margem-campo" type="number" id="cfg-margem-${chave}" value="${info.margemPadrao}" step="0.1"/></td>
+          <td><input class="margem-campo" type="number" id="cfg-piso-${chave}" value="${info.margemMinima}" step="0.1"/></td>
+        </tr>`;
+    });
+  }
+
+  function atualizarReferenciaCategoria() {
+    const categoria = document.getElementById("f-categoria").value;
+    const info = categoriaInfo(categoria);
+    const margemInput = document.getElementById("f-margem");
+    if (!margemInput.value) {
+      margemInput.value = String(info.margemPadrao);
+    }
+    document.getElementById("f-margemRefInfo").value =
+      `Margem sugerida ${info.margemPadrao}% | Piso ${info.margemMinima}%`;
+  }
+
+  function sincronizarStatusPorQuantidade() {
+    const quantidade = parseInt(document.getElementById("f-quantidade").value, 10);
+    const statusEl = document.getElementById("f-status");
+    if (!Number.isFinite(quantidade)) return;
+    if (quantidade <= 0) {
+      statusEl.value = "vendido";
+      return;
+    }
+    if (statusEl.value === "vendido") {
+      statusEl.value = "estoque";
+    }
+  }
+
+  async function carregarProdutos() {
+    const snap = await getDocs(query(collection(db, "produtos"), orderBy("criadoEm", "desc")));
+    const tbody = document.getElementById("tbProdutos");
+    tbody.innerHTML = "";
+    if (snap.empty) {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#aaa">Nenhum produto cadastrado</td></tr>`;
+      return;
+    }
+    snap.forEach(d => {
+      const p = d.data();
+      const cat = categoriaInfo(p.categoria || "outros");
+      const qtd = parseInt(p.quantidade, 10);
+      const qtdExib = Number.isFinite(qtd) ? qtd : 1;
+      const statusMap = {
+        estoque:   '<span class="badge badge-green">Em Estoque</span>',
+        reservado: '<span class="badge badge-yellow">Reservado</span>',
+        vendido:   '<span class="badge badge-gray">Vendido</span>'
+      };
+      const acoes = userData.perfil !== "visualizacao"
+        ? `<button class="btn btn-sm" style="background:#eee" onclick="editarProduto('${d.id}')">✏️</button>
+           <button class="btn btn-danger btn-sm" onclick="excluirProduto('${d.id}')">🗑️</button>`
+        : "—";
+      tbody.innerHTML += `
+        <tr>
+          <td><strong>${p.nome}</strong><br><small style="color:#888">${p.imei || ""}</small></td>
+          <td>${cat.nome}</td>
+          <td>${p.cor || "—"} / ${p.armazenamento || "—"}</td>
+          <td>${qtdExib}</td>
+          <td>${fmt(p.precoCompra)}</td>
+          <td>${fmt(p.precoVendaSugerido)}</td>
+          <td>${statusMap[p.status] || p.status}</td>
+          <td>${acoes}</td>
+        </tr>`;
+    });
+  }
+
+  function calcularSugerido() {
+    ["f-precoCompra","f-freteCompra","f-brinde","f-freteVenda","f-imposto","f-margem"]
+      .forEach(id => document.getElementById(id)
+        .addEventListener("input", () => {
+          const categoria = document.getElementById("f-categoria").value;
+          const info = categoriaInfo(categoria);
+          const pc = parseFloat(document.getElementById("f-precoCompra").value) || 0;
+          const fc = parseFloat(document.getElementById("f-freteCompra").value) || 0;
+          const br = parseFloat(document.getElementById("f-brinde").value)      || 0;
+          const fv = parseFloat(document.getElementById("f-freteVenda").value)  || 0;
+          const im = parseFloat(document.getElementById("f-imposto").value)     || 9;
+          const mg = parseFloat(document.getElementById("f-margem").value)      || 0;
+          const pf = calcPrecoFinal(pc, fc, br, fv, im, mg);
+          const piso = calcPrecoFinal(pc, fc, br, fv, im, info.margemMinima);
+          if (pf) document.getElementById("f-precoVendaSugerido").value = pf.toFixed(2);
+          if (piso) document.getElementById("f-precoMinimo").value = piso.toFixed(2);
+        }));
+  }
+
+  function recalcPrecificacao() {
+    const categoria = document.getElementById("f-categoria").value;
+    const info = categoriaInfo(categoria);
+    const pc = parseFloat(document.getElementById("f-precoCompra").value) || 0;
+    const fc = parseFloat(document.getElementById("f-freteCompra").value) || 0;
+    const br = parseFloat(document.getElementById("f-brinde").value)      || 0;
+    const fv = parseFloat(document.getElementById("f-freteVenda").value)  || 0;
+    const im = parseFloat(document.getElementById("f-imposto").value)     || 9;
+    const mg = parseFloat(document.getElementById("f-margem").value)      || 0;
+    const pf = calcPrecoFinal(pc, fc, br, fv, im, mg);
+    const piso = calcPrecoFinal(pc, fc, br, fv, im, info.margemMinima);
+    if (pf) document.getElementById("f-precoVendaSugerido").value = pf.toFixed(2);
+    if (piso) document.getElementById("f-precoMinimo").value = piso.toFixed(2);
+  }
+
+  function inicializarPrecificacao() {
+    atualizarReferenciaCategoria();
+    document.getElementById("f-categoria").addEventListener("change", () => {
+      atualizarReferenciaCategoria();
+      recalcPrecificacao();
+    });
+    document.getElementById("f-quantidade").addEventListener("input", sincronizarStatusPorQuantidade);
+    calcularSugerido();
+  }
+
+  document.getElementById("btnNovoProduto").addEventListener("click", () => {
+    editandoId = null;
+    document.getElementById("modalTitulo").textContent = "Novo Produto";
+    limparModal();
+    document.getElementById("modalProduto").classList.add("open");
+  });
+
+  document.getElementById("btnCancelarProduto").addEventListener("click", () => {
+    document.getElementById("modalProduto").classList.remove("open");
+  });
+
+  document.getElementById("btnSalvarProduto").addEventListener("click", async () => {
+    const nome = document.getElementById("f-nome").value.trim();
+    const categoria = document.getElementById("f-categoria").value;
+    const infoCategoria = categoriaInfo(categoria);
+    const precoCompra = parseFloat(document.getElementById("f-precoCompra").value);
+    const quantidade = parseInt(document.getElementById("f-quantidade").value, 10);
+    if (!nome || isNaN(precoCompra) || !Number.isFinite(quantidade) || quantidade < 0) {
+      alert("Preencha nome, preço de compra e quantidade (mínimo 0).");
+      return;
+    }
+    const statusSelecionado = document.getElementById("f-status").value;
+    const statusFinal = quantidade <= 0
+      ? "vendido"
+      : (statusSelecionado === "vendido" ? "estoque" : statusSelecionado);
+    const dataCompraVal = document.getElementById("f-dataCompra").value;
+    const produto = {
+      nome,
+      categoria,
+      marca:              document.getElementById("f-marca").value.trim(),
+      cor:                document.getElementById("f-cor").value.trim(),
+      armazenamento:      document.getElementById("f-armazenamento").value.trim(),
+      imei:               document.getElementById("f-imei").value.trim(),
+      quantidade,
+      precoCompra,
+      freteCompra:        parseFloat(document.getElementById("f-freteCompra").value) || 0,
+      brinde:             parseFloat(document.getElementById("f-brinde").value)      || 0,
+      formaPagCompra:     document.getElementById("f-formaPagCompra").value,
+      dataCompra:         dataCompraVal ? Timestamp.fromDate(new Date(dataCompraVal)) : null,
+      freteVenda:         parseFloat(document.getElementById("f-freteVenda").value)  || 0,
+      imposto:            parseFloat(document.getElementById("f-imposto").value)     || 9,
+      margem:             parseFloat(document.getElementById("f-margem").value)      || 0,
+      margemReferenciaCategoria: infoCategoria.margemPadrao,
+      margemMinimaCategoria: infoCategoria.margemMinima,
+      precoVendaSugerido: parseFloat(document.getElementById("f-precoVendaSugerido").value) || 0,
+      precoMinimo:        parseFloat(document.getElementById("f-precoMinimo").value) || 0,
+      status:             statusFinal,
+      obs:                document.getElementById("f-obs").value.trim(),
+      atualizadoEm:       Timestamp.now()
+    };
+
+    if (editandoId) {
+      const ref = doc(db, "produtos", editandoId);
+      const atualSnap = await getDoc(ref);
+      const atual = atualSnap.exists() ? atualSnap.data() : {};
+      produto.criadoEm = atual.criadoEm || Timestamp.now();
+
+      const mudouPreco =
+        Number(atual.precoCompra || 0) !== Number(produto.precoCompra || 0) ||
+        Number(atual.precoVendaSugerido || 0) !== Number(produto.precoVendaSugerido || 0) ||
+        Number(atual.precoMinimo || 0) !== Number(produto.precoMinimo || 0) ||
+        Number(atual.margem || 0) !== Number(produto.margem || 0);
+
+      if (mudouPreco) {
+        const hist = Array.isArray(atual.historicoPrecos) ? atual.historicoPrecos : [];
+        hist.push({
+          em: Timestamp.now(),
+          por: userData.email || userData.nome || "usuario",
+          antes: {
+            precoCompra: Number(atual.precoCompra || 0),
+            precoVendaSugerido: Number(atual.precoVendaSugerido || 0),
+            precoMinimo: Number(atual.precoMinimo || 0),
+            margem: Number(atual.margem || 0)
+          },
+          depois: {
+            precoCompra: Number(produto.precoCompra || 0),
+            precoVendaSugerido: Number(produto.precoVendaSugerido || 0),
+            precoMinimo: Number(produto.precoMinimo || 0),
+            margem: Number(produto.margem || 0)
+          }
+        });
+        produto.historicoPrecos = hist.slice(-30);
+      }
+
+      await updateDoc(ref, produto);
+    } else {
+      produto.criadoEm = Timestamp.now();
+      produto.historicoPrecos = [];
+      await addDoc(collection(db, "produtos"), produto);
+    }
+    document.getElementById("modalProduto").classList.remove("open");
+    carregarProdutos();
+  });
+
+  window.editarProduto = async (id) => {
+    editandoId = id;
+    const snap = await getDoc(doc(db, "produtos", id));
+    if (!snap.exists()) return;
+    const p = snap.data();
+    document.getElementById("modalTitulo").textContent = "Editar Produto";
+    document.getElementById("f-nome").value             = p.nome || "";
+    document.getElementById("f-categoria").value        = p.categoria || "outros";
+    document.getElementById("f-marca").value            = p.marca || "";
+    document.getElementById("f-cor").value              = p.cor || "";
+    document.getElementById("f-armazenamento").value    = p.armazenamento || "";
+    document.getElementById("f-imei").value             = p.imei || "";
+    document.getElementById("f-quantidade").value       = p.quantidade || 1;
+    document.getElementById("f-precoCompra").value      = p.precoCompra || "";
+    document.getElementById("f-freteCompra").value      = p.freteCompra || "";
+    document.getElementById("f-brinde").value           = p.brinde || "";
+    document.getElementById("f-formaPagCompra").value   = p.formaPagCompra || "à vista";
+    document.getElementById("f-dataCompra").value       = p.dataCompra
+      ? p.dataCompra.toDate().toISOString().split("T")[0] : "";
+    document.getElementById("f-freteVenda").value       = p.freteVenda || "";
+    document.getElementById("f-imposto").value          = p.imposto || 9;
+    document.getElementById("f-margem").value           = p.margem || "";
+    document.getElementById("f-precoVendaSugerido").value = p.precoVendaSugerido || "";
+    document.getElementById("f-precoMinimo").value      = p.precoMinimo || "";
+    document.getElementById("f-status").value           = p.status || "estoque";
+    document.getElementById("f-obs").value              = p.obs || "";
+    atualizarReferenciaCategoria();
+    sincronizarStatusPorQuantidade();
+    document.getElementById("modalProduto").classList.add("open");
+  };
+
+  window.excluirProduto = async (id) => {
+    if (!confirm("Excluir este produto?")) return;
+    await deleteDoc(doc(db, "produtos", id));
+    carregarProdutos();
+  };
+
+  function limparModal() {
+    ["f-nome","f-marca","f-cor","f-armazenamento","f-imei","f-precoCompra",
+     "f-freteCompra","f-brinde","f-freteVenda","f-margem","f-precoVendaSugerido",
+     "f-precoMinimo","f-obs","f-dataCompra"].forEach(id => document.getElementById(id).value = "");
+    document.getElementById("f-categoria").value = "iphone_novo";
+    document.getElementById("f-quantidade").value = "1";
+    document.getElementById("f-imposto").value = "9";
+    document.getElementById("f-status").value  = "estoque";
+    atualizarReferenciaCategoria();
+    sincronizarStatusPorQuantidade();
+  }
+
+  document.getElementById("btnConfigMargens").addEventListener("click", () => {
+    renderConfigMargens();
+    document.getElementById("modalMargens").classList.add("open");
+  });
+
+  document.getElementById("btnCancelarMargens").addEventListener("click", () => {
+    document.getElementById("modalMargens").classList.remove("open");
+  });
+
+  document.getElementById("btnSalvarMargens").addEventListener("click", async () => {
+    const proximaConfig = JSON.parse(JSON.stringify(categoriasConfig));
+    Object.keys(proximaConfig).forEach(chave => {
+      const margem = Number(document.getElementById(`cfg-margem-${chave}`).value);
+      const piso = Number(document.getElementById(`cfg-piso-${chave}`).value);
+      proximaConfig[chave].margemPadrao = Number.isFinite(margem) ? margem : proximaConfig[chave].margemPadrao;
+      proximaConfig[chave].margemMinima = Number.isFinite(piso) ? piso : proximaConfig[chave].margemMinima;
+    });
+    categoriasConfig = proximaConfig;
+    await setDoc(CONFIG_MARGENS_REF, {
+      categorias: categoriasConfig,
+      atualizadoEm: Timestamp.now(),
+      atualizadoPor: userData.email || userData.nome || "usuario"
+    });
+    atualizarReferenciaCategoria();
+    recalcPrecificacao();
+    document.getElementById("modalMargens").classList.remove("open");
+    alert("Margens por categoria atualizadas.");
+  });
+</script>
+</body>
+</html>

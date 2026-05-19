@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Saques e Distribuição</title>
+  <link rel="stylesheet" href="style.css"/>
+  <style>
+    @media (max-width: 768px) {
+      body { font-size: 18px !important; }
+      .main { padding: 12px; }
+      .page-title { font-size: 24px; }
+      h2 { font-size: 20px; }
+      input, select, textarea, .btn { font-size: 16px; }
+      table { font-size: 16px; }
+      .form-group label { font-size: 14px; }
+    }
+  </style>
+</head>
+<body>
+<div id="loading">Carregando...</div>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><img src="logo.png.jpg" alt="NeoApple One"/> NeoApple One</div>
+    <nav>
+      <a href="dashboard.html"><span class="icon">🏠</span> Dashboard</a>
+      <a href="produtos.html"><span class="icon">📦</span> Produtos</a>
+      <a href="entradas.html"><span class="icon">📥</span> Entradas</a>
+      <a href="orcamentos.html"><span class="icon">🧾</span> Orçamentos</a>
+      <a href="vendas.html"><span class="icon">💰</span> Vendas</a>
+      <a href="parcelas.html"><span class="icon">💳</span> Parcelas</a>
+      <a href="investimentos.html"><span class="icon">🏦</span> Investimentos</a>
+      <a href="saques.html" class="active"><span class="icon">💸</span> Saques</a>
+      <a href="usuarios.html" id="menu-usuarios"><span class="icon">👥</span> Usuários</a>
+    </nav>
+    <div class="sidebar-footer">
+      <span class="badge" id="sb-perfil">—</span>
+      <strong id="sb-nome">—</strong>
+      <button class="btn-logout" id="btnLogout">Sair</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="page-title">Saques e Distribuição de Lucro</div>
+    <div id="avisoVisualizacao" class="acesso-negado">
+      Perfil de visualização: você não pode registrar saques.
+    </div>
+
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:end">
+      <div class="form-group" style="margin-bottom:0;min-width:180px">
+        <label>Sócio</label>
+        <select id="filtroSocio">
+          <option value="">Todos</option>
+          <option value="Leandro Santos">Leandro Santos</option>
+          <option value="Davi Mafioleti">Davi Mafioleti</option>
+          <option value="Rafael Furlan">Rafael Furlan</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:0;min-width:180px">
+        <label>Tipo</label>
+        <select id="filtroTipo">
+          <option value="">Todos</option>
+          <option value="saque">Saque</option>
+          <option value="distribuicao_lucro">Distribuição de Lucro</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label>Data Inicial</label>
+        <input type="date" id="filtroDataInicio"/>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label>Data Final</label>
+        <input type="date" id="filtroDataFim"/>
+      </div>
+      <button class="btn btn-primary btn-sm" id="btnAplicarFiltro">Aplicar</button>
+      <button class="btn btn-sm" id="btnLimparFiltro" style="background:#eee;color:#333">Limpar</button>
+    </div>
+
+    <div class="table-container" style="margin-bottom:16px">
+      <div class="table-header">
+        <h2>Saídas Financeiras</h2>
+        <button class="btn btn-primary btn-sm" id="btnNovoSaque">+ Novo Registro</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Sócio</th>
+            <th>Tipo</th>
+            <th>Valor</th>
+            <th>Data</th>
+            <th>Observações</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="tbSaques">
+          <tr><td colspan="6" style="text-align:center;color:#aaa">Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="modalSaque">
+  <div class="modal" style="max-width:540px">
+    <h2>Novo Registro</h2>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Sócio *</label>
+        <select id="f-socio" required>
+          <option value="">-- Selecione --</option>
+          <option value="Leandro Santos">Leandro Santos</option>
+          <option value="Davi Mafioleti">Davi Mafioleti</option>
+          <option value="Rafael Furlan">Rafael Furlan</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Tipo *</label>
+        <select id="f-tipoSaque">
+          <option value="saque">Saque</option>
+          <option value="distribuicao_lucro">Distribuição de Lucro</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Valor (R$) *</label>
+        <input type="number" id="f-valorSaque" step="0.01" placeholder="0,00"/>
+      </div>
+      <div class="form-group">
+        <label>Data</label>
+        <input type="date" id="f-dataSaque"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Observações</label>
+      <textarea id="f-obsSaque" rows="2"></textarea>
+    </div>
+    <div class="form-actions">
+      <button class="btn" id="btnCancelarSaque" style="background:#eee;color:#333">Cancelar</button>
+      <button class="btn btn-primary" id="btnSalvarSaque">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { requireAuth, preencherSidebar, logout, db, fmt, fmtData,
+    collection, getDocs, addDoc, deleteDoc, doc, query, orderBy, Timestamp }
+    from "./app.js";
+
+  let userData;
+  let saquesCache = [];
+
+  requireAuth(async (user, ud) => {
+    userData = ud;
+    preencherSidebar(ud);
+    document.getElementById("btnLogout").addEventListener("click", logout);
+
+    if (ud.perfil === "visualizacao") {
+      document.getElementById("avisoVisualizacao").style.display = "block";
+      document.getElementById("btnNovoSaque").style.display = "none";
+    }
+
+    document.getElementById("f-dataSaque").value = new Date().toISOString().split("T")[0];
+
+    await carregarSaques();
+    initEventos();
+  });
+
+  function initEventos() {
+    document.getElementById("btnNovoSaque").addEventListener("click", abrirModal);
+    document.getElementById("btnCancelarSaque").addEventListener("click", fecharModal);
+    document.getElementById("btnSalvarSaque").addEventListener("click", salvarSaque);
+    document.getElementById("btnAplicarFiltro").addEventListener("click", aplicarFiltro);
+    document.getElementById("btnLimparFiltro").addEventListener("click", limparFiltro);
+    document.getElementById("filtroSocio").addEventListener("change", aplicarFiltro);
+  }
+
+  function abrirModal() {
+    document.getElementById("f-socio").value = "";
+    document.getElementById("f-tipoSaque").value = "saque";
+    document.getElementById("f-valorSaque").value = "";
+    document.getElementById("f-dataSaque").value = new Date().toISOString().split("T")[0];
+    document.getElementById("f-obsSaque").value = "";
+    document.getElementById("modalSaque").classList.add("open");
+  }
+
+  function fecharModal() {
+    document.getElementById("modalSaque").classList.remove("open");
+  }
+
+  async function salvarSaque() {
+    const socio = document.getElementById("f-socio").value.trim();
+    const tipo = document.getElementById("f-tipoSaque").value;
+    const valor = Number(document.getElementById("f-valorSaque").value);
+    const data = document.getElementById("f-dataSaque").value;
+    const obs = document.getElementById("f-obsSaque").value.trim();
+
+    if (!socio || !tipo || !Number.isFinite(valor) || valor <= 0) {
+      alert("Informe sócio, tipo e valor válido.");
+      return;
+    }
+
+    await addDoc(collection(db, "saques"), {
+      socio,
+      tipo,
+      valor,
+      obs,
+      dataReferencia: data ? Timestamp.fromDate(new Date(`${data}T12:00:00`)) : Timestamp.now(),
+      criadoEm: Timestamp.now(),
+      criadoPor: userData.email || userData.nome || "usuario"
+    });
+
+    fecharModal();
+    await carregarSaques();
+  }
+
+  async function carregarSaques() {
+    let lista = [];
+    try {
+      const snap = await getDocs(query(collection(db, "saques"), orderBy("dataReferencia", "desc")));
+      snap.forEach(d => lista.push({ id: d.id, ...d.data() }));
+    } catch {
+      const snap = await getDocs(collection(db, "saques"));
+      snap.forEach(d => lista.push({ id: d.id, ...d.data() }));
+      lista.sort((a, b) => {
+        const da = a.dataReferencia?.toMillis ? a.dataReferencia.toMillis() : 0;
+        const db = b.dataReferencia?.toMillis ? b.dataReferencia.toMillis() : 0;
+        return db - da;
+      });
+    }
+
+    saquesCache = lista;
+    renderSaques(lista);
+  }
+
+  function limparFiltro() {
+    document.getElementById("filtroSocio").value = "";
+    document.getElementById("filtroTipo").value = "";
+    document.getElementById("filtroDataInicio").value = "";
+    document.getElementById("filtroDataFim").value = "";
+    renderSaques(saquesCache);
+  }
+
+  function aplicarFiltro() {
+    const socio = document.getElementById("filtroSocio").value.trim().toLowerCase();
+    const tipo = document.getElementById("filtroTipo").value;
+    const dataInicio = document.getElementById("filtroDataInicio").value;
+    const dataFim = document.getElementById("filtroDataFim").value;
+    const inicio = dataInicio ? new Date(dataInicio).getTime() : null;
+    const fim = dataFim ? new Date(dataFim).getTime() + 86400000 : null;
+
+    const lista = saquesCache.filter(item => {
+      if (socio && !(item.socio || "").toLowerCase().includes(socio)) return false;
+      if (tipo && item.tipo !== tipo) return false;
+      if (inicio || fim) {
+        const dt = item.dataReferencia?.toMillis ? item.dataReferencia.toMillis() : new Date(item.dataReferencia).getTime();
+        if (inicio && dt < inicio) return false;
+        if (fim && dt > fim) return false;
+      }
+      return true;
+    });
+
+    renderSaques(lista);
+  }
+
+  function renderSaques(lista) {
+    const tbody = document.getElementById("tbSaques");
+    tbody.innerHTML = "";
+
+    if (!lista.length) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#aaa">Nenhum registro encontrado</td></tr>`;
+      return;
+    }
+
+    let total = 0;
+    const totaisPorSocio = {};
+    lista.forEach(item => {
+      total += Number(item.valor || 0);
+      const socioNome = item.socio || "—";
+      totaisPorSocio[socioNome] = (totaisPorSocio[socioNome] || 0) + Number(item.valor || 0);
+      const tipoLabel = item.tipo === "distribuicao_lucro" ? "Distribuição de Lucro" : "Saque";
+      const acoes = userData.perfil !== "visualizacao"
+        ? `<button class="btn btn-danger btn-sm" onclick="excluirSaque('${item.id}')">🗑️</button>`
+        : "—";
+
+      tbody.innerHTML += `
+        <tr>
+          <td>${socioNome}</td>
+          <td>${tipoLabel}</td>
+          <td>${fmt(item.valor || 0)}</td>
+          <td>${fmtData(item.dataReferencia || item.criadoEm)}</td>
+          <td>${item.obs || "—"}</td>
+          <td>${acoes}</td>
+        </tr>`;
+    });
+
+    tbody.innerHTML += `
+      <tr style="background:#f8fafc;font-weight:700;border-top:2px solid #e5e7eb">
+        <td>TOTAL</td>
+        <td>—</td>
+        <td>${fmt(total)}</td>
+        <td colspan="3">Conferência da listagem atual</td>
+      </tr>`;
+
+    // Totalizador por sócio
+    const sociosFixos = ["Leandro Santos", "Davi Mafioleti", "Rafael Furlan"];
+    tbody.innerHTML += `<tr style="background:#f5f5f5;border-top:1px solid #ddd;height:8px"><td colspan="6"></td></tr>`;
+    sociosFixos.forEach(socio => {
+      const valor = totaisPorSocio[socio] || 0;
+      tbody.innerHTML += `
+        <tr style="background:#fafafa;font-size:14px">
+          <td>${socio}</td>
+          <td>—</td>
+          <td>${fmt(valor)}</td>
+          <td colspan="3"></td>
+        </tr>`;
+    });
+  }
+
+  window.excluirSaque = async (id) => {
+    if (!confirm("Excluir este registro?")) return;
+    await deleteDoc(doc(db, "saques", id));
+    await carregarSaques();
+  };
+</script>
+</body>
+</html>

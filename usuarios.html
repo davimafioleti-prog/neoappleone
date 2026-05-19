@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Usuários</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<div id="loading">Carregando...</div>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><img src="logo.png.jpg" alt="NeoApple One"/> NeoApple One</div>
+    <nav>
+      <a href="dashboard.html"><span class="icon">🏠</span> Dashboard</a>
+      <a href="produtos.html"><span class="icon">📦</span> Produtos</a>
+      <a href="entradas.html"><span class="icon">📥</span> Entradas</a>
+      <a href="orcamentos.html"><span class="icon">🧾</span> Orçamentos</a>
+      <a href="vendas.html"><span class="icon">💰</span> Vendas</a>
+      <a href="parcelas.html"><span class="icon">💳</span> Parcelas</a>
+      <a href="investimentos.html"><span class="icon">🏦</span> Investimentos</a>
+      <a href="saques.html"><span class="icon">💸</span> Saques</a>
+      <a href="usuarios.html" class="active" id="menu-usuarios"><span class="icon">👥</span> Usuários</a>
+    </nav>
+    <div class="sidebar-footer">
+      <span class="badge" id="sb-perfil">—</span>
+      <strong id="sb-nome">—</strong>
+      <button class="btn-logout" id="btnLogout">Sair</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="page-title">Gerenciar Usuários</div>
+
+    <div class="table-container">
+      <div class="table-header">
+        <h2>Usuários do Sistema</h2>
+        <button class="btn btn-primary btn-sm" id="btnNovoUsuario">+ Convidar Usuário</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>E-mail</th>
+            <th>Perfil</th>
+            <th>Status</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="tbUsuarios">
+          <tr><td colspan="5" style="text-align:center;color:#aaa">Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<!-- MODAL USUÁRIO -->
+<div class="modal-overlay" id="modalUsuario">
+  <div class="modal">
+    <h2>Convidar Usuário</h2>
+    <p style="font-size:13px;color:#888;margin-bottom:16px">
+      O usuário receberá acesso ao fazer login com o e-mail cadastrado via conta Google.
+    </p>
+    <div class="form-group">
+      <label>E-mail Google *</label>
+      <input type="email" id="f-emailUsuario" placeholder="email@gmail.com"/>
+    </div>
+    <div class="form-group">
+      <label>Nome *</label>
+      <input type="text" id="f-nomeUsuario" placeholder="Nome do usuário"/>
+    </div>
+    <div class="form-group">
+      <label>Perfil *</label>
+      <select id="f-perfilUsuario">
+        <option value="membro">Membro</option>
+        <option value="visualizacao">Visualização</option>
+      </select>
+    </div>
+    <div class="form-actions">
+      <button class="btn" id="btnCancelarUsuario"
+        style="background:#eee;color:#333">Cancelar</button>
+      <button class="btn btn-primary" id="btnSalvarUsuario">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { requireAuth, preencherSidebar, logout, db, MASTER_EMAIL,
+    collection, getDocs, setDoc, updateDoc, deleteDoc, doc, Timestamp }
+    from "./app.js";
+
+  requireAuth(async (user, userData) => {
+    if (userData.perfil !== "master") {
+      window.location.href = "dashboard.html";
+      return;
+    }
+    preencherSidebar(userData);
+    document.getElementById("btnLogout").addEventListener("click", logout);
+    carregarUsuarios();
+  });
+
+  async function carregarUsuarios() {
+    const snap = await getDocs(collection(db, "usuarios"));
+    const tbody = document.getElementById("tbUsuarios");
+    tbody.innerHTML = "";
+    snap.forEach(d => {
+      const u = d.data();
+      const perfilMap = {
+        master:       '<span class="badge badge-blue">Master</span>',
+        membro:       '<span class="badge badge-green">Membro</span>',
+        visualizacao: '<span class="badge badge-gray">Visualização</span>'
+      };
+      const statusBadge = u.ativo
+        ? '<span class="badge badge-green">Ativo</span>'
+        : '<span class="badge badge-red">Inativo</span>';
+
+      const acoes = u.email !== MASTER_EMAIL ? `
+        <button class="btn btn-sm" style="background:#eee"
+          onclick="toggleAtivo('${d.id}', ${u.ativo})">
+          ${u.ativo ? "🔒 Desativar" : "🔓 Ativar"}
+        </button>
+        <button class="btn btn-danger btn-sm" onclick="excluirUsuario('${d.id}')">🗑️</button>
+      ` : "—";
+
+      tbody.innerHTML += `
+        <tr>
+          <td>${u.nome || "—"}</td>
+          <td>${u.email}</td>
+          <td>${perfilMap[u.perfil] || u.perfil}</td>
+          <td>${statusBadge}</td>
+          <td>${acoes}</td>
+        </tr>`;
+    });
+  }
+
+  document.getElementById("btnNovoUsuario").addEventListener("click", () => {
+    document.getElementById("modalUsuario").classList.add("open");
+  });
+
+  document.getElementById("btnCancelarUsuario").addEventListener("click", () => {
+    document.getElementById("modalUsuario").classList.remove("open");
+  });
+
+  document.getElementById("btnSalvarUsuario").addEventListener("click", async () => {
+    const email  = document.getElementById("f-emailUsuario").value.trim().toLowerCase();
+    const nome   = document.getElementById("f-nomeUsuario").value.trim();
+    const perfil = document.getElementById("f-perfilUsuario").value;
+
+    if (!email || !nome) {
+      alert("Preencha e-mail e nome.");
+      return;
+    }
+
+    // Usa o e-mail como ID temporário até o usuário fazer login
+    const uid = "pending_" + email.replace(/[@.]/g, "_");
+    await setDoc(doc(db, "usuarios", uid), {
+      nome, email, perfil, ativo: true,
+      pendente: true,
+      criadoEm: Timestamp.now()
+    });
+
+    document.getElementById("modalUsuario").classList.remove("open");
+    document.getElementById("f-emailUsuario").value = "";
+    document.getElementById("f-nomeUsuario").value  = "";
+    carregarUsuarios();
+    alert(`Usuário ${nome} cadastrado! Ele poderá acessar ao fazer login com ${email}.`);
+  });
+
+  window.toggleAtivo = async (id, ativo) => {
+    await updateDoc(doc(db, "usuarios", id), { ativo: !ativo });
+    carregarUsuarios();
+  };
+
+  window.excluirUsuario = async (id) => {
+    if (!confirm("Excluir este usuário?")) return;
+    await deleteDoc(doc(db, "usuarios", id));
+    carregarUsuarios();
+  };
+</script>
+</body>
+</html>

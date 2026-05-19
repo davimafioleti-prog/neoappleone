@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Dashboard</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<div id="loading">Carregando...</div>
+<div class="layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo"><img src="logo.png.jpg" alt="NeoApple One"/> NeoApple One</div>
+    <nav>
+      <a href="dashboard.html" class="active"><span class="icon">🏠</span> Dashboard</a>
+      <a href="produtos.html"><span class="icon">📦</span> Produtos</a>
+      <a href="entradas.html"><span class="icon">📥</span> Entradas</a>
+      <a href="orcamentos.html"><span class="icon">🧾</span> Orçamentos</a>
+      <a href="vendas.html"><span class="icon">💰</span> Vendas</a>
+      <a href="parcelas.html"><span class="icon">💳</span> Parcelas</a>
+      <a href="investimentos.html"><span class="icon">🏦</span> Investimentos</a>
+      <a href="saques.html"><span class="icon">💸</span> Saques</a>
+      <a href="usuarios.html" id="menu-usuarios"><span class="icon">👥</span> Usuários</a>
+    </nav>
+    <div class="sidebar-footer">
+      <span class="badge" id="sb-perfil">—</span>
+      <strong id="sb-nome">—</strong>
+      <button class="btn-logout" id="btnLogout">Sair</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="page-title">Dashboard</div>
+
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin-bottom:20px">
+      <div class="form-group" style="margin-bottom:0;min-width:160px">
+        <label>Mês de Referência</label>
+        <input type="month" id="f-mesRef"/>
+      </div>
+      <div class="form-group" style="margin-bottom:0;min-width:160px">
+        <label>Regime</label>
+        <select id="f-regime">
+          <option value="competencia">Competência</option>
+          <option value="caixa">Caixa</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:0;min-width:180px">
+        <label>Contabilidade Mensal (R$)</label>
+        <input type="number" id="f-contabilidade" step="0.01"/>
+      </div>
+      <button class="btn btn-primary" id="btnSalvarFinanceiro" style="height:38px">Salvar Config.</button>
+    </div>
+
+    <div style="margin-bottom:20px;border:1px solid #e5e7eb;border-radius:8px;overflow:hidden">
+      <div style="background:#f9fafb;padding:12px;cursor:pointer;display:flex;justify-content:space-between;align-items:center" id="btnToggleAliquotas">
+        <h2 style="margin:0;font-size:16px">Vigências de Imposto (%)</h2>
+        <span style="font-size:18px;transition:transform 0.3s" id="iconToggleAliquotas">▼</span>
+      </div>
+      <div id="secaoAliquotas" style="padding:16px;display:none">
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin-bottom:10px">
+          <div class="form-group" style="margin-bottom:0;min-width:160px">
+            <label>Mês Inicial</label>
+            <input type="month" id="f-impInicio"/>
+          </div>
+          <div class="form-group" style="margin-bottom:0;min-width:160px">
+            <label>Mês Final</label>
+            <input type="month" id="f-impFim"/>
+          </div>
+          <div class="form-group" style="margin-bottom:0;min-width:160px">
+            <label>Alíquota (%)</label>
+            <input type="number" id="f-impAliquota" step="0.01" placeholder="Ex: 9.00"/>
+          </div>
+          <button class="btn btn-primary btn-sm" id="btnAddAliquota" style="height:38px">Adicionar Vigência</button>
+        </div>
+        <div style="border:1px solid #e5e7eb;border-radius:6px;overflow:hidden">
+          <table style="width:100%">
+            <thead style="background:#f5f5f5">
+              <tr>
+                <th style="padding:10px;text-align:left">Início</th>
+                <th style="padding:10px;text-align:left">Fim</th>
+                <th style="padding:10px;text-align:left">Alíquota</th>
+                <th style="padding:10px;text-align:left">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tbAliquotasImposto">
+              <tr><td colspan="4" style="text-align:center;color:#aaa;padding:12px">Nenhuma vigência cadastrada</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="cards-grid">
+      <div class="card">
+        <div class="card-icon">📦</div>
+        <div class="card-label">Produtos em Estoque</div>
+        <div class="card-value" id="totalEstoque">—</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">💰</div>
+        <div class="card-label" id="labelVendasMes">Vendas do Período</div>
+        <div class="card-value" id="vendasMes">—</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">💳</div>
+        <div class="card-label">Parcelas em aberto</div>
+        <div class="card-value" id="parcelasAbertas">—</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">⚠️</div>
+        <div class="card-label">Parcelas em atraso</div>
+        <div class="card-value" id="parcelasAtraso" style="color:#c62828">—</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">🏦</div>
+        <div class="card-label" id="labelFaturamento">Faturamento do Período</div>
+        <div class="card-value" id="faturamentoPeriodo">—</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">🧾</div>
+        <div class="card-label">Custo Total <span style="font-size:12px;color:#666">(clique para detalhar)</span></div>
+        <div class="card-value" id="custoPeriodo" style="cursor:pointer">—</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">📈</div>
+        <div class="card-label">Lucro Líquido</div>
+        <div class="card-value" id="lucroPeriodo">—</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">📊</div>
+        <div class="card-label">Lucro Antes de Impostos</div>
+        <div class="card-value" id="lucroAntesImpostos">—</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">💸</div>
+        <div class="card-label">Total de Impostos</div>
+        <div class="card-value" id="totalImpostos">—</div>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <div class="table-header">
+        <h2>Últimas Vendas</h2>
+        <a href="vendas.html" class="btn btn-primary btn-sm">Ver todas</a>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Produto</th>
+            <th>Cliente</th>
+            <th>Data</th>
+            <th>Valor</th>
+            <th>Lucro (R$)</th>
+            <th>Lucro (%)</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="tbUltimasVendas">
+          <tr><td colspan="7" style="text-align:center;color:#aaa">Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<!-- MODAL DETALHAMENTO CUSTO -->
+<div class="modal-overlay" id="modalDetalhamentoCusto">
+  <div class="modal" style="max-width:500px">
+    <h2>Detalhamento do Custo Total</h2>
+    <div style="background:#f9fafb;border-radius:6px;padding:12px;margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e5e7eb">
+        <span>Custo de Vendas (COGS)</span>
+        <strong id="det-custoVendas">R$ —</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e5e7eb">
+        <span>Impostos (do período)</span>
+        <strong id="det-impostos" style="color:#ff6f00">R$ —</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-bottom:8px;padding-bottom:8px;border-bottom:1px solid #e5e7eb">
+        <span>Contabilidade Mensal</span>
+        <strong id="det-contabilidade">R$ —</strong>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-weight:700;padding-top:8px">
+        <span>CUSTO TOTAL</span>
+        <strong style="font-size:16px" id="det-total">R$ —</strong>
+      </div>
+    </div>
+    <div style="background:#e3f2fd;border-left:4px solid #1976d2;padding:10px;border-radius:4px;font-size:13px;margin-bottom:12px">
+      <strong>Regime:</strong> <span id="det-regime">—</span><br/>
+      <strong>Período:</strong> <span id="det-periodo">—</span>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" id="btnFecharDetalhamento" style="width:100%">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { requireAuth, preencherSidebar, logout, db, fmt, fmtData,
+    collection, getDocs, getDoc, setDoc, doc, query, orderBy, where, Timestamp }
+    from "./app.js";
+
+  const CONFIG_FINANCEIRO_REF = doc(db, "configuracoes", "dashboardFinanceiro");
+  const CONFIG_IMPOSTOS_REF = doc(db, "configuracoes", "aliquotasImposto");
+  let contabilidadeMensal = 250;
+  let produtosCache = [];
+  let vendasCache = [];
+  let parcelasCache = [];
+  let aliquotasImposto = [];
+  let detalhamentoCustoAtual = { custoVendas: 0, impostos: 0, contabilidade: 0 };
+
+  requireAuth(async (user, userData) => {
+    preencherSidebar(userData);
+    document.getElementById("btnLogout").addEventListener("click", logout);
+
+    document.getElementById("f-mesRef").value = new Date().toISOString().slice(0, 7);
+    await carregarConfiguracaoFinanceira();
+    await carregarAliquotasImposto();
+    await carregarDadosBase();
+    await atualizarDashboard();
+
+    document.getElementById("f-mesRef").addEventListener("change", atualizarDashboard);
+    document.getElementById("f-regime").addEventListener("change", atualizarDashboard);
+    document.getElementById("btnSalvarFinanceiro").addEventListener("click", salvarConfiguracaoFinanceira);
+    document.getElementById("btnAddAliquota").addEventListener("click", adicionarAliquotaImposto);
+    
+    // Listeners para toggle de aliquotas
+    document.getElementById("btnToggleAliquotas").addEventListener("click", () => {
+      const secao = document.getElementById("secaoAliquotas");
+      const icon = document.getElementById("iconToggleAliquotas");
+      const isOpen = secao.style.display !== "none";
+      secao.style.display = isOpen ? "none" : "block";
+      icon.style.transform = isOpen ? "rotate(0deg)" : "rotate(180deg)";
+    });
+
+    // Listener para card de custo
+    document.getElementById("custoPeriodo").addEventListener("click", abrirDetalhamentoCusto);
+    document.getElementById("btnFecharDetalhamento").addEventListener("click", () => {
+      document.getElementById("modalDetalhamentoCusto").classList.remove("open");
+    });
+  });
+
+  function toDateSafe(valor) {
+    if (!valor) return null;
+    if (typeof valor.toDate === "function") return valor.toDate();
+    const dt = new Date(valor);
+    return isNaN(dt.getTime()) ? null : dt;
+  }
+
+  function inMonth(valor, inicio, fim) {
+    const dt = toDateSafe(valor);
+    return !!dt && dt >= inicio && dt < fim;
+  }
+
+  function roundMoney(valor) {
+    return Math.round((Number(valor) + Number.EPSILON) * 100) / 100;
+  }
+
+  function mesKeyFromDate(dateObj) {
+    const ano = dateObj.getFullYear();
+    const mes = String(dateObj.getMonth() + 1).padStart(2, "0");
+    return `${ano}-${mes}`;
+  }
+
+  function intervaloMesInclui(mesRef, inicioMes, fimMes) {
+    if (!mesRef || !inicioMes || !fimMes) return false;
+    return mesRef >= inicioMes && mesRef <= fimMes;
+  }
+
+  function intervalosSobrepostos(inicioA, fimA, inicioB, fimB) {
+    return !(fimA < inicioB || fimB < inicioA);
+  }
+
+  function getAliquotaImpostoPorData(dataRef, fallback = 9) {
+    const dt = toDateSafe(dataRef) || new Date();
+    const mesRef = mesKeyFromDate(dt);
+    const match = aliquotasImposto.find(v => intervaloMesInclui(mesRef, v.inicioMes, v.fimMes));
+    if (match) return Number(match.aliquota);
+    return Number.isFinite(Number(fallback)) ? Number(fallback) : 9;
+  }
+
+  function impostoPorEvento(valorBase, dataRef, fallback = 9) {
+    const aliquota = getAliquotaImpostoPorData(dataRef, fallback);
+    return roundMoney(Number(valorBase || 0) * (aliquota / 100));
+  }
+
+  async function carregarAliquotasImposto() {
+    const snap = await getDoc(CONFIG_IMPOSTOS_REF);
+    if (!snap.exists()) {
+      aliquotasImposto = [];
+      renderAliquotasImposto();
+      return;
+    }
+    const lista = Array.isArray(snap.data()?.vigencias) ? snap.data().vigencias : [];
+    aliquotasImposto = lista
+      .filter(v => v?.inicioMes && v?.fimMes && Number.isFinite(Number(v.aliquota)))
+      .map(v => ({
+        inicioMes: String(v.inicioMes),
+        fimMes: String(v.fimMes),
+        aliquota: Number(v.aliquota)
+      }))
+      .sort((a, b) => a.inicioMes.localeCompare(b.inicioMes));
+    renderAliquotasImposto();
+  }
+
+  function renderAliquotasImposto() {
+    const tbody = document.getElementById("tbAliquotasImposto");
+    if (!tbody) return;
+    tbody.innerHTML = "";
+
+    if (!aliquotasImposto.length) {
+      tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:#aaa">Nenhuma vigência cadastrada</td></tr>`;
+      return;
+    }
+
+    aliquotasImposto.forEach((item, index) => {
+      tbody.innerHTML += `
+        <tr>
+          <td>${item.inicioMes}</td>
+          <td>${item.fimMes}</td>
+          <td>${item.aliquota.toFixed(2)}%</td>
+          <td><button class="btn btn-danger btn-sm" onclick="removerAliquotaImposto(${index})">Excluir</button></td>
+        </tr>`;
+    });
+  }
+
+  async function salvarAliquotasImposto() {
+    await setDoc(CONFIG_IMPOSTOS_REF, {
+      vigencias: aliquotasImposto,
+      atualizadoEm: Timestamp.now()
+    }, { merge: true });
+  }
+
+  async function adicionarAliquotaImposto() {
+    const inicioMes = document.getElementById("f-impInicio").value;
+    const fimMes = document.getElementById("f-impFim").value;
+    const aliquota = Number(document.getElementById("f-impAliquota").value);
+
+    if (!inicioMes || !fimMes || !Number.isFinite(aliquota)) {
+      alert("Informe mês inicial, mês final e alíquota válidos.");
+      return;
+    }
+    if (inicioMes > fimMes) {
+      alert("O mês inicial deve ser menor ou igual ao mês final.");
+      return;
+    }
+    if (aliquota < 0 || aliquota > 100) {
+      alert("A alíquota deve estar entre 0 e 100.");
+      return;
+    }
+
+    const sobrepoe = aliquotasImposto.some(v =>
+      intervalosSobrepostos(inicioMes, fimMes, v.inicioMes, v.fimMes)
+    );
+    if (sobrepoe) {
+      alert("Já existe vigência para esse período. Não é permitido sobrepor datas.");
+      return;
+    }
+
+    aliquotasImposto.push({
+      inicioMes,
+      fimMes,
+      aliquota: roundMoney(aliquota)
+    });
+    aliquotasImposto.sort((a, b) => a.inicioMes.localeCompare(b.inicioMes));
+
+    await salvarAliquotasImposto();
+    renderAliquotasImposto();
+    document.getElementById("f-impInicio").value = "";
+    document.getElementById("f-impFim").value = "";
+    document.getElementById("f-impAliquota").value = "";
+    await atualizarDashboard();
+  }
+
+  window.removerAliquotaImposto = async (index) => {
+    if (index < 0 || index >= aliquotasImposto.length) return;
+    if (!confirm("Excluir esta vigência de imposto?")) return;
+    aliquotasImposto.splice(index, 1);
+    await salvarAliquotasImposto();
+    renderAliquotasImposto();
+    await atualizarDashboard();
+  };
+
+  async function abrirDetalhamentoCusto() {
+    const mesRef = document.getElementById("f-mesRef").value;
+    const regime = document.getElementById("f-regime").value;
+    
+    document.getElementById("det-custoVendas").textContent = fmt(detalhamentoCustoAtual.custoVendas);
+    document.getElementById("det-impostos").textContent = fmt(detalhamentoCustoAtual.impostos);
+    document.getElementById("det-contabilidade").textContent = fmt(detalhamentoCustoAtual.contabilidade);
+    document.getElementById("det-total").textContent = fmt(
+      detalhamentoCustoAtual.custoVendas + detalhamentoCustoAtual.impostos + detalhamentoCustoAtual.contabilidade
+    );
+    document.getElementById("det-regime").textContent = regime === "competencia" ? "Competência" : "Caixa";
+    document.getElementById("det-periodo").textContent = mesRef;
+    
+    document.getElementById("modalDetalhamentoCusto").classList.add("open");
+  }
+
+  async function carregarConfiguracaoFinanceira() {
+    const snap = await getDoc(CONFIG_FINANCEIRO_REF);
+    if (snap.exists()) {
+      const valor = Number(snap.data()?.contabilidadeMensal);
+      contabilidadeMensal = Number.isFinite(valor) ? valor : 250;
+    }
+    document.getElementById("f-contabilidade").value = contabilidadeMensal.toFixed(2);
+  }
+
+  async function salvarConfiguracaoFinanceira() {
+    const valor = Number(document.getElementById("f-contabilidade").value);
+    contabilidadeMensal = Number.isFinite(valor) ? valor : 250;
+    await setDoc(CONFIG_FINANCEIRO_REF, {
+      contabilidadeMensal,
+      atualizadoEm: Timestamp.now()
+    });
+    await atualizarDashboard();
+  }
+
+  async function carregarDadosBase() {
+    const [prodSnap, vendasSnap, parcelasSnap] = await Promise.all([
+      getDocs(collection(db, "produtos")),
+      getDocs(collection(db, "vendas")),
+      getDocs(collection(db, "parcelas"))
+    ]);
+    produtosCache = [];
+    vendasCache = [];
+    parcelasCache = [];
+    prodSnap.forEach(d => produtosCache.push({ id: d.id, ...d.data() }));
+    vendasSnap.forEach(d => vendasCache.push({ id: d.id, ...d.data() }));
+    parcelasSnap.forEach(d => parcelasCache.push({ id: d.id, ...d.data() }));
+  }
+
+  async function atualizarDashboard() {
+    const mesRef = document.getElementById("f-mesRef").value;
+    const regime = document.getElementById("f-regime").value;
+    const [ano, mes] = mesRef.split("-").map(Number);
+    const inicio = new Date(ano, mes - 1, 1, 0, 0, 0, 0);
+    const fim = new Date(ano, mes, 1, 0, 0, 0, 0);
+
+    let totalUnidades = 0;
+    produtosCache.forEach(p => {
+      const qtd = parseInt(p.quantidade, 10);
+      if (Number.isFinite(qtd) && qtd > 0) totalUnidades += qtd;
+    });
+    document.getElementById("totalEstoque").textContent = totalUnidades;
+
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    const abertas = parcelasCache.filter(p => p.status === "aberta");
+    const atraso = abertas.filter(p => {
+      const venc = toDateSafe(p.vencimento);
+      return venc && venc < hoje;
+    });
+    document.getElementById("parcelasAbertas").textContent = abertas.length;
+    document.getElementById("parcelasAtraso").textContent = atraso.length;
+
+    const vendasPeriodo = vendasCache.filter(v => inMonth(v.criadoEm, inicio, fim));
+    const vendasPorId = new Map(vendasCache.map(v => [v.id, v]));
+    let faturamento = 0;
+    let custo = 0;
+    let totalImposto = 0;
+    let indicadorMovimento = 0;
+
+    if (regime === "competencia") {
+      indicadorMovimento = vendasPeriodo.length;
+      faturamento = vendasPeriodo.reduce((sum, v) => sum + Number(v.precoVenda || 0), 0);
+      custo = vendasPeriodo.reduce((sum, v) => {
+        const impostoVenda = impostoPorEvento(
+          Number(v.precoVenda || 0),
+          v.criadoEm,
+          v.impostoPercentualAplicado || 9
+        );
+        totalImposto += impostoVenda;
+        return sum + Number(v.custoTotal || 0) + impostoVenda;
+      }, 0);
+      document.getElementById("labelVendasMes").textContent = "Vendas do Período";
+      document.getElementById("labelFaturamento").textContent = "Faturamento do Período";
+    } else {
+      const vendasDiretas = vendasPeriodo.filter(v => (v.formaPagamento || "") !== "parcelado");
+      const parcelasPagas = parcelasCache.filter(p => p.status === "paga" && inMonth(p.pagoEm, inicio, fim));
+      indicadorMovimento = vendasDiretas.length + parcelasPagas.length;
+      faturamento += vendasDiretas.reduce((sum, v) => sum + Number(v.precoVenda || 0), 0);
+      custo += vendasDiretas.reduce((sum, v) => {
+        const impostoVenda = impostoPorEvento(
+          Number(v.precoVenda || 0),
+          v.criadoEm,
+          v.impostoPercentualAplicado || 9
+        );
+        totalImposto += impostoVenda;
+        return sum + Number(v.custoTotal || 0) + impostoVenda;
+      }, 0);
+
+      parcelasPagas.forEach(p => {
+        faturamento += Number(p.valor || 0);
+        const venda = vendasPorId.get(p.vendaId);
+        if (!venda || !Number(venda.precoVenda || 0)) return;
+        const proporcao = Number(p.valor || 0) / Number(venda.precoVenda || 1);
+        const custoBaseProporcional = Number(venda.custoTotal || 0) * proporcao;
+        const impostoRecebimento = impostoPorEvento(
+          Number(p.valor || 0),
+          p.pagoEm,
+          venda.impostoPercentualAplicado || 9
+        );
+        totalImposto += impostoRecebimento;
+        const custoProporcional = custoBaseProporcional + impostoRecebimento;
+        custo += custoProporcional;
+      });
+
+      document.getElementById("labelVendasMes").textContent = "Recebimentos do Período";
+      document.getElementById("labelFaturamento").textContent = "Receita em Caixa";
+    }
+
+    const custoTotal = roundMoney(custo + contabilidadeMensal);
+    const faturamentoTotal = roundMoney(faturamento);
+    totalImposto = roundMoney(totalImposto);
+    
+    // Armazenar valores para detalhamento
+    const custoSemContabilidade = roundMoney(custo);
+    const custoImposto = roundMoney(totalImposto);
+    detalhamentoCustoAtual = {
+      custoVendas: custoSemContabilidade - custoImposto,
+      impostos: custoImposto,
+      contabilidade: contabilidadeMensal
+    };
+    
+    // Lucro antes de impostos = faturamento - custo (sem impostos)
+    const custoSemImpostos = roundMoney(custo + contabilidadeMensal - totalImposto);
+    const lucroAntesImpostos = roundMoney(faturamentoTotal - custoSemImpostos);
+    
+    const lucroLiquido = roundMoney(faturamentoTotal - custoTotal);
+    document.getElementById("vendasMes").textContent = indicadorMovimento;
+    document.getElementById("faturamentoPeriodo").textContent = fmt(faturamentoTotal);
+    document.getElementById("custoPeriodo").textContent = fmt(custoTotal);
+    const lucroEl = document.getElementById("lucroPeriodo");
+    lucroEl.textContent = fmt(lucroLiquido);
+    lucroEl.style.color = lucroLiquido >= 0 ? "#2e7d32" : "#c62828";
+    
+    const lucroAIEl = document.getElementById("lucroAntesImpostos");
+    lucroAIEl.textContent = fmt(lucroAntesImpostos);
+    lucroAIEl.style.color = lucroAntesImpostos >= 0 ? "#2e7d32" : "#c62828";
+    
+    const impostoEl = document.getElementById("totalImpostos");
+    impostoEl.textContent = fmt(totalImposto);
+    impostoEl.style.color = "#ff6f00";
+
+    renderUltimasVendas(vendasPeriodo);
+  }
+
+  function renderUltimasVendas(vendasPeriodo) {
+    const tbody = document.getElementById("tbUltimasVendas");
+    tbody.innerHTML = "";
+    const lista = [...vendasPeriodo].sort((a, b) => {
+      const da = toDateSafe(a.criadoEm)?.getTime() || 0;
+      const db = toDateSafe(b.criadoEm)?.getTime() || 0;
+      return db - da;
+    }).slice(0, 5);
+
+    if (!lista.length) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#aaa">Nenhuma venda no período</td></tr>`;
+      return;
+    }
+
+    lista.forEach(v => {
+      const lucro = v.lucroLiquido || 0;
+      const percentLucro = v.precoVenda > 0 ? ((lucro / v.precoVenda) * 100).toFixed(1) : 0;
+      tbody.innerHTML += `
+        <tr>
+          <td>${v.nomeProduto || "—"}</td>
+          <td>${v.nomeCliente || "—"}</td>
+          <td>${fmtData(v.criadoEm)}</td>
+          <td>${fmt(v.precoVenda)}</td>
+          <td>${fmt(lucro)}</td>
+          <td>${percentLucro}%</td>
+          <td><span class="badge badge-blue">${v.formaPagamento || "—"}</span></td>
+        </tr>`;
+    });
+  }
+</script>
+</body>
+</html>

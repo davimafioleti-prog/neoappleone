@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Entradas</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<div id="loading">Carregando...</div>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><img src="logo.png.jpg" alt="NeoApple One"/> NeoApple One</div>
+    <nav>
+      <a href="dashboard.html"><span class="icon">🏠</span> Dashboard</a>
+      <a href="produtos.html"><span class="icon">📦</span> Produtos</a>
+      <a href="entradas.html" class="active"><span class="icon">📥</span> Entradas</a>
+      <a href="orcamentos.html"><span class="icon">🧾</span> Orçamentos</a>
+      <a href="vendas.html"><span class="icon">💰</span> Vendas</a>
+      <a href="parcelas.html"><span class="icon">💳</span> Parcelas</a>
+      <a href="investimentos.html"><span class="icon">🏦</span> Investimentos</a>
+      <a href="saques.html"><span class="icon">💸</span> Saques</a>
+      <a href="usuarios.html" id="menu-usuarios"><span class="icon">👥</span> Usuários</a>
+    </nav>
+    <div class="sidebar-footer">
+      <span class="badge" id="sb-perfil">—</span>
+      <strong id="sb-nome">—</strong>
+      <button class="btn-logout" id="btnLogout">Sair</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="page-title">Entradas de Estoque</div>
+    <div id="avisoVisualizacao" class="acesso-negado">
+      Perfil de visualização: você não pode registrar entradas.
+    </div>
+
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:end">
+      <div class="form-group" style="margin-bottom:0">
+        <label>Período (Data Inicial)</label>
+        <input type="date" id="filtroDataInicio"/>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label>Período (Data Final)</label>
+        <input type="date" id="filtroDataFim"/>
+      </div>
+      <div class="form-group" style="margin-bottom:0;min-width:180px">
+        <label>Produto</label>
+        <input type="text" id="filtroProdutoEnt" placeholder="Nome"/>
+      </div>
+      <div class="form-group" style="margin-bottom:0;min-width:180px">
+        <label>Fornecedor</label>
+        <input type="text" id="filtroFornecedor" placeholder="Nome"/>
+      </div>
+      <button class="btn btn-primary btn-sm" id="btnAplicarFiltroEnt">Aplicar</button>
+      <button class="btn btn-sm" id="btnLimparFiltrosEnt" style="background:#eee;color:#333">Limpar</button>
+    </div>
+
+    <div class="table-container">
+      <div class="table-header">
+        <h2>Histórico de Entradas</h2>
+        <button class="btn btn-primary btn-sm" id="btnNovaEntrada">+ Nova Entrada</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Produto</th>
+            <th>Quantidade</th>
+            <th>Custo</th>
+            <th>Fornecedor</th>
+            <th>Data</th>
+            <th>Observações</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="tbEntradas">
+          <tr><td colspan="7" style="text-align:center;color:#aaa">Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="modalEntrada">
+  <div class="modal">
+    <h2 id="modalEntradaTitulo">Nova Entrada</h2>
+    <div class="section-divider">Produto</div>
+    <div class="form-group">
+      <label>Tipo de Entrada</label>
+      <select id="f-tipoEntrada">
+        <option value="existente">Produto já cadastrado</option>
+        <option value="novo">Cadastrar produto novo</option>
+      </select>
+    </div>
+    <div id="secaoProdutoExistente">
+    <div class="form-group">
+      <label>Produto cadastrado *</label>
+      <select id="f-produtoEntrada">
+        <option value="">— Selecione —</option>
+      </select>
+    </div>
+    </div>
+    <div id="secaoProdutoNovo" style="display:none">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nome / Modelo *</label>
+          <input type="text" id="f-nomeNovoProduto" placeholder="Ex: iPhone 15 128GB"/>
+        </div>
+        <div class="form-group">
+          <label>Marca</label>
+          <input type="text" id="f-marcaNovoProduto" placeholder="Ex: Apple"/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Categoria *</label>
+          <select id="f-categoriaNovoProduto">
+            <option value="iphone_novo">iPhone Novo</option>
+            <option value="iphone_seminovo">iPhone Seminovo</option>
+            <option value="apple_watch">Apple Watch</option>
+            <option value="acessorios">Acessórios</option>
+            <option value="outros">Outros</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>IMEI / Série</label>
+          <input type="text" id="f-imeiNovoProduto" placeholder="Opcional"/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Cor</label>
+          <input type="text" id="f-corNovoProduto" placeholder="Ex: Preto"/>
+        </div>
+        <div class="form-group">
+          <label>Armazenamento</label>
+          <input type="text" id="f-armNovoProduto" placeholder="Ex: 256GB"/>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label>Margem Ideal (%)</label>
+          <input type="number" id="f-margemNovoProduto" step="0.1"/>
+        </div>
+        <div class="form-group">
+          <label>Preço Sugerido (R$)</label>
+          <input type="number" id="f-precoSugeridoNovoProduto" step="0.01" readonly style="background:#f5f5f5"/>
+        </div>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Quantidade *</label>
+        <input type="number" id="f-qtdEntrada" min="1" step="1" value="1"/>
+      </div>
+      <div class="form-group">
+        <label>Data da Entrada</label>
+        <input type="date" id="f-dataEntrada"/>
+      </div>
+    </div>
+
+    <div class="section-divider">Custos</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Fornecedor</label>
+        <input type="text" id="f-fornecedorEntrada" placeholder="Nome do fornecedor"/>
+      </div>
+      <div class="form-group">
+        <label>Custo unitário (R$) *</label>
+        <input type="number" id="f-custoUnitEntrada" step="0.01" placeholder="Obrigatório"/>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Frete total (R$)</label>
+        <input type="number" id="f-freteEntrada" step="0.01" placeholder="0,00"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Observações</label>
+      <textarea id="f-obsEntrada" rows="2"></textarea>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn" id="btnCancelarEntrada" style="background:#eee;color:#333">Cancelar</button>
+      <button class="btn btn-primary" id="btnSalvarEntrada">Registrar Entrada</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { requireAuth, preencherSidebar, logout, db, fmt, fmtData,
+    collection, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc,
+    query, orderBy, Timestamp, calcPrecoFinal }
+    from "./app.js";
+
+  let userData;
+  let produtos = [];
+  let entradasCache = [];
+  let editandoEntradaId = null;
+
+  const CONFIG_MARGENS_REF = doc(db, "configuracoes", "precificacaoCategorias");
+  const CATEGORIAS_PADRAO = {
+    iphone_novo: { nome: "iPhone Novo", margemPadrao: 18 },
+    iphone_seminovo: { nome: "iPhone Seminovo", margemPadrao: 15 },
+    apple_watch: { nome: "Apple Watch", margemPadrao: 20 },
+    acessorios: { nome: "Acessorios", margemPadrao: 25 },
+    outros: { nome: "Outros", margemPadrao: 15 }
+  };
+  let categoriasConfig = JSON.parse(JSON.stringify(CATEGORIAS_PADRAO));
+
+  requireAuth(async (user, ud) => {
+    userData = ud;
+    preencherSidebar(ud);
+
+    document.getElementById("btnLogout").addEventListener("click", logout);
+
+    if (ud.perfil === "visualizacao") {
+      document.getElementById("avisoVisualizacao").style.display = "block";
+      document.getElementById("btnNovaEntrada").style.display = "none";
+    }
+
+    document.getElementById("f-dataEntrada").value = new Date().toISOString().split("T")[0];
+
+    await carregarConfiguracaoMargens();
+    await carregarProdutos();
+    await carregarEntradas();
+    inicializarEntrada();
+
+    document.getElementById("btnAplicarFiltroEnt").addEventListener("click", aplicarFiltrosEnt);
+    document.getElementById("btnLimparFiltrosEnt").addEventListener("click", limparFiltrosEnt);
+    ["filtroProdutoEnt", "filtroFornecedor"].forEach(id => {
+      document.getElementById(id).addEventListener("keydown", (e) => {
+        if (e.key === "Enter") aplicarFiltrosEnt();
+      });
+    });
+  });
+
+  function categoriaInfo(categoria) {
+    return categoriasConfig[categoria] || categoriasConfig.outros;
+  }
+
+  async function carregarConfiguracaoMargens() {
+    const snap = await getDoc(CONFIG_MARGENS_REF);
+    if (!snap.exists()) return;
+    const data = snap.data()?.categorias || {};
+
+    Object.keys(categoriasConfig).forEach(chave => {
+      const atual = data[chave] || {};
+      if (Number.isFinite(Number(atual.margemPadrao))) {
+        categoriasConfig[chave].margemPadrao = Number(atual.margemPadrao);
+      }
+    });
+  }
+
+  function atualizarTipoEntrada() {
+    const tipo = document.getElementById("f-tipoEntrada").value;
+    document.getElementById("secaoProdutoExistente").style.display = tipo === "existente" ? "block" : "none";
+    document.getElementById("secaoProdutoNovo").style.display = tipo === "novo" ? "block" : "none";
+  }
+
+  function recalcularPrecoNovoProduto() {
+    const custoUnit = parseFloat(document.getElementById("f-custoUnitEntrada").value) || 0;
+    const freteTotal = parseFloat(document.getElementById("f-freteEntrada").value) || 0;
+    const quantidade = parseInt(document.getElementById("f-qtdEntrada").value, 10) || 1;
+    const freteUnit = quantidade > 0 ? freteTotal / quantidade : 0;
+    const freteVenda = 0;
+    const imposto = 9;
+    const margem = parseFloat(document.getElementById("f-margemNovoProduto").value) || 0;
+    const sugerido = calcPrecoFinal(custoUnit, freteUnit, 0, freteVenda, imposto, margem);
+    document.getElementById("f-precoSugeridoNovoProduto").value = sugerido ? sugerido.toFixed(2) : "";
+  }
+
+  function aplicarMargemCategoriaNova() {
+    const categoria = document.getElementById("f-categoriaNovoProduto").value;
+    document.getElementById("f-margemNovoProduto").value = String(categoriaInfo(categoria).margemPadrao);
+    recalcularPrecoNovoProduto();
+  }
+
+  function inicializarEntrada() {
+    document.getElementById("f-tipoEntrada").addEventListener("change", atualizarTipoEntrada);
+    document.getElementById("f-categoriaNovoProduto").addEventListener("change", aplicarMargemCategoriaNova);
+    ["f-custoUnitEntrada", "f-freteEntrada", "f-qtdEntrada", "f-margemNovoProduto"]
+      .forEach(id => document.getElementById(id).addEventListener("input", recalcularPrecoNovoProduto));
+    aplicarMargemCategoriaNova();
+    atualizarTipoEntrada();
+  }
+
+  function limparModalEntrada() {
+    editandoEntradaId = null;
+    document.getElementById("modalEntradaTitulo").textContent = "Nova Entrada";
+    document.getElementById("btnSalvarEntrada").textContent = "Registrar Entrada";
+    document.getElementById("f-tipoEntrada").disabled = false;
+    document.getElementById("f-produtoEntrada").disabled = false;
+    document.getElementById("f-tipoEntrada").value = "existente";
+    document.getElementById("f-produtoEntrada").value = "";
+    document.getElementById("f-qtdEntrada").value = "1";
+    document.getElementById("f-fornecedorEntrada").value = "";
+    document.getElementById("f-custoUnitEntrada").value = "";
+    document.getElementById("f-freteEntrada").value = "";
+    document.getElementById("f-obsEntrada").value = "";
+    document.getElementById("f-dataEntrada").value = new Date().toISOString().split("T")[0];
+    document.getElementById("f-nomeNovoProduto").value = "";
+    document.getElementById("f-marcaNovoProduto").value = "";
+    document.getElementById("f-imeiNovoProduto").value = "";
+    document.getElementById("f-corNovoProduto").value = "";
+    document.getElementById("f-armNovoProduto").value = "";
+    document.getElementById("f-categoriaNovoProduto").value = "iphone_novo";
+    aplicarMargemCategoriaNova();
+    atualizarTipoEntrada();
+  }
+
+  function abrirModalEdicaoEntrada(entrada) {
+    editandoEntradaId = entrada.id;
+    document.getElementById("modalEntradaTitulo").textContent = "Editar Entrada";
+    document.getElementById("btnSalvarEntrada").textContent = "Salvar Alterações";
+    document.getElementById("f-tipoEntrada").value = "existente";
+    document.getElementById("f-tipoEntrada").disabled = true;
+    atualizarTipoEntrada();
+    document.getElementById("f-produtoEntrada").value = entrada.produtoId || "";
+    document.getElementById("f-produtoEntrada").disabled = true;
+    document.getElementById("f-qtdEntrada").value = String(parseInt(entrada.quantidade, 10) || 1);
+    document.getElementById("f-custoUnitEntrada").value = Number(entrada.custoUnitario || 0).toFixed(2);
+    document.getElementById("f-freteEntrada").value = Number(entrada.freteTotal || 0).toFixed(2);
+    document.getElementById("f-fornecedorEntrada").value = entrada.fornecedor || "";
+    document.getElementById("f-obsEntrada").value = entrada.obs || "";
+    const dataRef = entrada.dataEntrada || entrada.criadoEm;
+    const dt = dataRef?.toDate ? dataRef.toDate() : new Date(dataRef);
+    document.getElementById("f-dataEntrada").value = Number.isNaN(dt.getTime())
+      ? new Date().toISOString().split("T")[0]
+      : dt.toISOString().split("T")[0];
+    document.getElementById("modalEntrada").classList.add("open");
+  }
+
+  async function carregarProdutos() {
+    const sel = document.getElementById("f-produtoEntrada");
+    sel.innerHTML = `<option value="">— Selecione —</option>`;
+    produtos = [];
+
+    const snap = await getDocs(query(collection(db, "produtos"), orderBy("nome", "asc")));
+    snap.forEach(d => {
+      const p = { id: d.id, ...d.data() };
+      produtos.push(p);
+      const qtd = Number.isFinite(parseInt(p.quantidade, 10)) ? parseInt(p.quantidade, 10) : 0;
+      const opt = document.createElement("option");
+      opt.value = d.id;
+      opt.textContent = `${p.nome} — ${p.cor || ""} ${p.armazenamento || ""} (Saldo: ${qtd})`;
+      sel.appendChild(opt);
+    });
+  }
+
+  async function carregarEntradas() {
+    const snap = await getDocs(query(collection(db, "entradas"), orderBy("criadoEm", "desc")));
+    entradasCache = [];
+    snap.forEach(d => entradasCache.push({ id: d.id, ...d.data() }));
+    renderEntradas(entradasCache);
+  }
+
+  function renderEntradas(lista) {
+    const tbody = document.getElementById("tbEntradas");
+    tbody.innerHTML = "";
+
+    if (!lista.length) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#aaa">Nenhuma entrada encontrada</td></tr>`;
+      return;
+    }
+
+    let totalQtd = 0;
+    let totalCusto = 0;
+
+    lista.forEach(e => {
+      const custoTotal = (Number(e.custoUnitario || 0) * Number(e.quantidade || 0)) + Number(e.freteTotal || 0);
+      totalQtd += Number(e.quantidade || 0);
+      totalCusto += custoTotal;
+      const acoes = userData.perfil !== "visualizacao"
+        ? `<button class="btn btn-sm" style="background:#eee" onclick="editarEntrada('${e.id}')">✏️</button>
+           <button class="btn btn-danger btn-sm" onclick="excluirEntrada('${e.id}')">🗑️</button>`
+        : "—";
+      tbody.innerHTML += `
+        <tr>
+          <td>${e.nomeProduto || "—"}</td>
+          <td>${e.quantidade || 0}</td>
+          <td>${fmt(custoTotal)}</td>
+          <td>${e.fornecedor || "—"}</td>
+          <td>${fmtData(e.dataEntrada || e.criadoEm)}</td>
+          <td>${e.obs || "—"}</td>
+          <td>${acoes}</td>
+        </tr>`;
+    });
+
+    tbody.innerHTML += `
+      <tr style="background:#f8fafc;font-weight:700;border-top:2px solid #e5e7eb">
+        <td>TOTAL</td>
+        <td>${totalQtd}</td>
+        <td>${fmt(totalCusto)}</td>
+        <td colspan="4">Conferência da listagem atual</td>
+      </tr>`;
+  }
+
+  function limparFiltrosEnt() {
+    document.getElementById("filtroDataInicio").value = "";
+    document.getElementById("filtroDataFim").value = "";
+    document.getElementById("filtroProdutoEnt").value = "";
+    document.getElementById("filtroFornecedor").value = "";
+    renderEntradas(entradasCache);
+  }
+
+  function aplicarFiltrosEnt() {
+    const dataInicio = document.getElementById("filtroDataInicio").value;
+    const dataFim = document.getElementById("filtroDataFim").value;
+    const produto = document.getElementById("filtroProdutoEnt").value.trim().toLowerCase();
+    const fornecedor = document.getElementById("filtroFornecedor").value.trim().toLowerCase();
+    const inicio = dataInicio ? new Date(dataInicio).getTime() : null;
+    const fim = dataFim ? new Date(dataFim).getTime() + 86400000 : null;
+
+    const filtrada = entradasCache.filter(e => {
+      if (produto && !(e.nomeProduto || "").toLowerCase().includes(produto)) return false;
+      if (fornecedor && !(e.fornecedor || "").toLowerCase().includes(fornecedor)) return false;
+
+      if (inicio || fim) {
+        const dataEnt = e.dataEntrada?.toMillis ? e.dataEntrada.toMillis() : new Date(e.dataEntrada || e.criadoEm).getTime();
+        if (inicio && dataEnt < inicio) return false;
+        if (fim && dataEnt > fim) return false;
+      }
+      return true;
+    });
+
+    renderEntradas(filtrada);
+  }
+
+  document.getElementById("btnNovaEntrada").addEventListener("click", () => {
+    limparModalEntrada();
+    document.getElementById("modalEntrada").classList.add("open");
+  });
+
+  document.getElementById("btnCancelarEntrada").addEventListener("click", () => {
+    document.getElementById("modalEntrada").classList.remove("open");
+    limparModalEntrada();
+  });
+
+  window.editarEntrada = async (id) => {
+    const entrada = entradasCache.find(e => e.id === id);
+    if (!entrada) return;
+    abrirModalEdicaoEntrada(entrada);
+  };
+
+  window.excluirEntrada = async (id) => {
+    if (!confirm("Excluir esta entrada? O estoque do produto será reduzido.")) return;
+
+    let entrada = entradasCache.find(e => e.id === id);
+    if (!entrada) {
+      const entradaSnap = await getDoc(doc(db, "entradas", id));
+      if (!entradaSnap.exists()) {
+        alert("Entrada não encontrada.");
+        return;
+      }
+      entrada = { id: entradaSnap.id, ...entradaSnap.data() };
+    }
+
+    const qtdEntrada = Number.isFinite(parseInt(entrada.quantidade, 10)) ? parseInt(entrada.quantidade, 10) : 0;
+    if (entrada.produtoId) {
+      const produtoRef = doc(db, "produtos", entrada.produtoId);
+      const produtoSnap = await getDoc(produtoRef);
+      if (produtoSnap.exists()) {
+        const produto = produtoSnap.data();
+        const saldoAtual = Number.isFinite(parseInt(produto.quantidade, 10)) ? parseInt(produto.quantidade, 10) : 0;
+        const novoSaldo = saldoAtual - qtdEntrada;
+        await updateDoc(produtoRef, {
+          quantidade: novoSaldo,
+          status: novoSaldo > 0 ? "estoque" : "vendido",
+          atualizadoEm: Timestamp.now()
+        });
+      }
+    }
+
+    await deleteDoc(doc(db, "entradas", id));
+    await carregarProdutos();
+    await carregarEntradas();
+  };
+
+  document.getElementById("btnSalvarEntrada").addEventListener("click", async () => {
+    const tipoEntrada = document.getElementById("f-tipoEntrada").value;
+    const quantidade = parseInt(document.getElementById("f-qtdEntrada").value, 10);
+    const custoUnitario = parseFloat(document.getElementById("f-custoUnitEntrada").value) || 0;
+    const freteTotal = parseFloat(document.getElementById("f-freteEntrada").value) || 0;
+    const dataEntrada = document.getElementById("f-dataEntrada").value;
+    const fornecedor = document.getElementById("f-fornecedorEntrada").value.trim();
+    const obs = document.getElementById("f-obsEntrada").value.trim();
+
+    if (!Number.isFinite(quantidade) || quantidade < 1) {
+      alert("Informe uma quantidade valida.");
+      return;
+    }
+
+    if (custoUnitario <= 0) {
+      alert("Custo unitário é obrigatório e deve ser maior que zero.");
+      return;
+    }
+
+    if (editandoEntradaId) {
+      const entradaRef = doc(db, "entradas", editandoEntradaId);
+      const entradaSnap = await getDoc(entradaRef);
+      if (!entradaSnap.exists()) {
+        alert("Entrada não encontrada.");
+        return;
+      }
+
+      const anterior = entradaSnap.data();
+      const produtoIdEdicao = anterior.produtoId || document.getElementById("f-produtoEntrada").value;
+      if (!produtoIdEdicao) {
+        alert("Entrada sem produto vinculado.");
+        return;
+      }
+
+      const produtoRef = doc(db, "produtos", produtoIdEdicao);
+      const produtoSnap = await getDoc(produtoRef);
+      if (!produtoSnap.exists()) {
+        alert("Produto vinculado não encontrado.");
+        return;
+      }
+
+      const qtdAnterior = Number.isFinite(parseInt(anterior.quantidade, 10)) ? parseInt(anterior.quantidade, 10) : 0;
+      const deltaQtd = quantidade - qtdAnterior;
+      const produto = produtoSnap.data();
+      const saldoAtual = Number.isFinite(parseInt(produto.quantidade, 10)) ? parseInt(produto.quantidade, 10) : 0;
+      const novoSaldo = saldoAtual + deltaQtd;
+
+      await updateDoc(entradaRef, {
+        quantidade,
+        custoUnitario,
+        freteTotal,
+        fornecedor,
+        obs,
+        dataEntrada: dataEntrada ? Timestamp.fromDate(new Date(dataEntrada)) : Timestamp.now(),
+        atualizadoEm: Timestamp.now(),
+        atualizadoPor: userData.email || userData.nome || "usuario"
+      });
+
+      const payloadProduto = {
+        quantidade: novoSaldo,
+        status: novoSaldo > 0 ? "estoque" : "vendido",
+        atualizadoEm: Timestamp.now()
+      };
+      if (custoUnitario > 0) payloadProduto.precoCompra = custoUnitario;
+      if (freteTotal > 0) payloadProduto.freteCompra = freteTotal;
+      if (fornecedor) payloadProduto.fornecedor = fornecedor;
+
+      await updateDoc(produtoRef, payloadProduto);
+
+      document.getElementById("modalEntrada").classList.remove("open");
+      limparModalEntrada();
+      await carregarProdutos();
+      await carregarEntradas();
+      return;
+    }
+
+    if (tipoEntrada === "novo") {
+      const nomeNovo = document.getElementById("f-nomeNovoProduto").value.trim();
+      if (!nomeNovo) {
+        alert("Informe o nome do novo produto.");
+        return;
+      }
+
+      const categoria = document.getElementById("f-categoriaNovoProduto").value;
+      const margem = parseFloat(document.getElementById("f-margemNovoProduto").value) || 0;
+      const freteCompraUnit = quantidade > 0 ? freteTotal / quantidade : 0;
+      const imposto = 9; // Valor padrão
+      const freteVenda = 0; // Valor padrão
+      const precoSugerido = calcPrecoFinal(custoUnitario, freteCompraUnit, 0, freteVenda, imposto, margem) || 0;
+
+      const produtoRef = await addDoc(collection(db, "produtos"), {
+        nome: nomeNovo,
+        categoria,
+        marca: document.getElementById("f-marcaNovoProduto").value.trim(),
+        cor: document.getElementById("f-corNovoProduto").value.trim(),
+        armazenamento: document.getElementById("f-armNovoProduto").value.trim(),
+        imei: document.getElementById("f-imeiNovoProduto").value.trim(),
+        quantidade,
+        precoCompra: custoUnitario,
+        freteCompra: freteCompraUnit,
+        brinde: 0,
+        formaPagCompra: "a vista",
+        dataCompra: dataEntrada ? Timestamp.fromDate(new Date(dataEntrada)) : Timestamp.now(),
+        freteVenda,
+        imposto,
+        margem,
+        margemReferenciaCategoria: categoriaInfo(categoria).margemPadrao,
+        margemMinimaCategoria: 0,
+        precoVendaSugerido: Number(precoSugerido.toFixed(2)),
+        precoMinimo: 0,
+        status: "estoque",
+        fornecedor,
+        obs,
+        criadoEm: Timestamp.now(),
+        atualizadoEm: Timestamp.now(),
+        historicoPrecos: []
+      });
+
+      await addDoc(collection(db, "entradas"), {
+        produtoId: produtoRef.id,
+        nomeProduto: nomeNovo,
+        quantidade,
+        custoUnitario,
+        freteTotal,
+        fornecedor,
+        obs,
+        dataEntrada: dataEntrada ? Timestamp.fromDate(new Date(dataEntrada)) : Timestamp.now(),
+        criadoEm: Timestamp.now(),
+        criadoPor: userData.email || userData.nome || "usuario"
+      });
+
+      document.getElementById("modalEntrada").classList.remove("open");
+      limparModalEntrada();
+      await carregarProdutos();
+      await carregarEntradas();
+      alert("Produto criado e entrada registrada com sucesso!");
+      return;
+    }
+
+    const produtoId = document.getElementById("f-produtoEntrada").value;
+    if (!produtoId) {
+      alert("Selecione o produto para registrar a entrada.");
+      return;
+    }
+
+    const produtoRef = doc(db, "produtos", produtoId);
+    const produtoSnap = await getDoc(produtoRef);
+    if (!produtoSnap.exists()) {
+      alert("Produto nao encontrado.");
+      return;
+    }
+
+    const produto = produtoSnap.data();
+    const saldoAtual = Number.isFinite(parseInt(produto.quantidade, 10)) ? parseInt(produto.quantidade, 10) : 0;
+    const novoSaldo = saldoAtual + quantidade;
+
+    await addDoc(collection(db, "entradas"), {
+      produtoId,
+      nomeProduto: produto.nome || "—",
+      quantidade,
+      custoUnitario,
+      freteTotal,
+      fornecedor,
+      obs,
+      dataEntrada: dataEntrada ? Timestamp.fromDate(new Date(dataEntrada)) : Timestamp.now(),
+      criadoEm: Timestamp.now(),
+      criadoPor: userData.email || userData.nome || "usuario"
+    });
+
+    const payload = {
+      quantidade: novoSaldo,
+      status: novoSaldo > 0 ? "estoque" : "vendido",
+      atualizadoEm: Timestamp.now()
+    };
+
+    if (custoUnitario > 0) payload.precoCompra = custoUnitario;
+    if (freteTotal > 0) payload.freteCompra = freteTotal;
+    if (fornecedor) payload.fornecedor = fornecedor;
+
+    await updateDoc(produtoRef, payload);
+
+    document.getElementById("modalEntrada").classList.remove("open");
+    limparModalEntrada();
+    await carregarProdutos();
+    await carregarEntradas();
+  });
+</script>
+</body>
+</html>

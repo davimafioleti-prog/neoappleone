@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Vendas</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<div id="loading">Carregando...</div>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><img src="logo.png.jpg" alt="NeoApple One"/> NeoApple One</div>
+    <nav>
+      <a href="dashboard.html"><span class="icon">🏠</span> Dashboard</a>
+      <a href="produtos.html"><span class="icon">📦</span> Produtos</a>
+      <a href="entradas.html"><span class="icon">📥</span> Entradas</a>
+      <a href="orcamentos.html"><span class="icon">🧾</span> Orçamentos</a>
+      <a href="vendas.html" class="active"><span class="icon">💰</span> Vendas</a>
+      <a href="parcelas.html"><span class="icon">💳</span> Parcelas</a>
+      <a href="investimentos.html"><span class="icon">🏦</span> Investimentos</a>
+      <a href="saques.html"><span class="icon">💸</span> Saques</a>
+      <a href="usuarios.html" id="menu-usuarios"><span class="icon">👥</span> Usuários</a>
+    </nav>
+    <div class="sidebar-footer">
+      <span class="badge" id="sb-perfil">—</span>
+      <strong id="sb-nome">—</strong>
+      <button class="btn-logout" id="btnLogout">Sair</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="page-title">Vendas</div>
+    <div id="avisoVisualizacao" class="acesso-negado">
+      Perfil de visualização: você não pode registrar vendas.
+    </div>
+
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:end">
+      <div class="form-group" style="margin-bottom:0">
+        <label>ID da Venda</label>
+        <input type="text" id="filtroVendaId" placeholder="ID"/>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label>Período (Data Inicial)</label>
+        <input type="date" id="filtroDataInicio"/>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label>Período (Data Final)</label>
+        <input type="date" id="filtroDataFim"/>
+      </div>
+      <div class="form-group" style="margin-bottom:0;min-width:180px">
+        <label>Cliente</label>
+        <input type="text" id="filtroCliente" placeholder="Nome ou telefone"/>
+      </div>
+      <div class="form-group" style="margin-bottom:0;min-width:180px">
+        <label>Produto</label>
+        <input type="text" id="filtroProduto" placeholder="Nome"/>
+      </div>
+      <button class="btn btn-primary btn-sm" id="btnAplicarFiltro">Aplicar</button>
+      <button class="btn btn-sm" id="btnLimparFiltros" style="background:#eee;color:#333">Limpar</button>
+    </div>
+
+    <div class="table-container">
+      <div class="table-header">
+        <h2>Histórico de Vendas</h2>
+        <button class="btn btn-primary btn-sm" id="btnNovaVenda">+ Nova Venda</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Produto</th>
+            <th>Cliente</th>
+            <th>Data</th>
+            <th>Preço Venda</th>
+            <th>Lucro (R$)</th>
+            <th>Lucro (%)</th>
+            <th>Pagamento</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="tbVendas">
+          <tr><td colspan="8" style="text-align:center;color:#aaa">Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<!-- MODAL VENDA -->
+<div class="modal-overlay" id="modalVenda">
+  <div class="modal">
+    <h2 id="modalVendaTitulo">Nova Venda</h2>
+
+    <div class="section-divider">Produtos da Venda *</div>
+    <div class="form-row">
+      <div class="form-group" style="flex:1;">
+        <label>Produto</label>
+        <select id="f-adicionarProduto">
+          <option value="">— Selecione para adicionar —</option>
+        </select>
+      </div>
+      <div class="form-group" style="flex:0.3;">
+        <label>Qtd</label>
+        <input type="number" id="f-adicionarQtd" value="1" min="1" step="1"/>
+      </div>
+      <div class="form-group" style="flex:0.3;display:flex;align-items:flex-end">
+        <button class="btn btn-primary btn-sm" id="btnAdicionarProduto" style="width:100%;margin:0">Adicionar</button>
+      </div>
+    </div>
+    <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:8px;margin-bottom:12px;max-height:200px;overflow-y:auto">
+      <table style="width:100%;font-size:13px;margin:0">
+        <thead style="border-bottom:1px solid #e5e7eb">
+          <tr>
+            <th style="text-align:left;padding:4px">Produto</th>
+            <th style="text-align:center;padding:4px;width:50px">Qtd</th>
+            <th style="text-align:right;padding:4px;width:80px">Preço Unit.</th>
+            <th style="text-align:right;padding:4px;width:80px">Subtotal</th>
+            <th style="text-align:center;padding:4px;width:30px">—</th>
+          </tr>
+        </thead>
+        <tbody id="tbItensVenda">
+          <tr><td colspan="5" style="text-align:center;color:#aaa;padding:8px">Nenhum produto adicionado</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="section-divider">Cliente</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Nome do Cliente *</label>
+        <input type="text" id="f-cliente" placeholder="Nome completo"/>
+      </div>
+      <div class="form-group">
+        <label>Telefone</label>
+        <input type="text" id="f-telefone" placeholder="(00) 00000-0000"/>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>CPF</label>
+        <input type="text" id="f-cpf" placeholder="000.000.000-00"/>
+      </div>
+      <div class="form-group">
+        <label>Profissão</label>
+        <input type="text" id="f-profissao" placeholder="Ex: Autônomo, Empresário"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Endereço</label>
+      <input type="text" id="f-endereco" placeholder="Rua, número, bairro, cidade"/>
+    </div>
+
+    <div class="section-divider">Totais da Venda</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Custo Total (R$)</label>
+        <input type="number" id="f-custoTotal" placeholder="Calculado auto" step="0.01" readonly
+          style="background:#f5f5f5"/>
+      </div>
+      <div class="form-group">
+        <label>Preço Total da Venda (R$) *</label>
+        <input type="number" id="f-precoVenda" placeholder="Calculado/Editar" step="0.01"/>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Frete de Venda (R$)</label>
+        <input type="number" id="f-freteVenda" placeholder="0,00" step="0.01" value="0"/>
+      </div>
+      <div class="form-group">
+        <label>Preço Mínimo de Referência (R$)</label>
+        <input type="number" id="f-precoMinimoRef" placeholder="Calculado auto" step="0.01" readonly
+          style="background:#f5f5f5"/>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Data da Venda</label>
+        <input type="date" id="f-dataVenda"/>
+      </div>
+      <div class="form-group">
+        <label>Forma de Pagamento</label>
+        <select id="f-formaPag">
+          <option value="à vista">À Vista</option>
+          <option value="pix">PIX</option>
+          <option value="parcelado">Parcelado</option>
+          <option value="cartão crédito">Cartão Crédito</option>
+          <option value="outro">Outro</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Parcelamento -->
+    <div id="secaoParc" style="display:none">
+      <div class="section-divider">Parcelamento</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Entrada (R$)</label>
+          <input type="number" id="f-entrada" placeholder="0,00" step="0.01"/>
+        </div>
+        <div class="form-group">
+          <label>Nº de Parcelas</label>
+          <input type="number" id="f-numParcelas" placeholder="Ex: 4" min="1"/>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Juros Mensais (%)</label>
+          <input type="number" id="f-juros" value="1.5" step="0.1"/>
+        </div>
+        <div class="form-group">
+          <label>Valor de Cada Parcela</label>
+          <input type="number" id="f-valorParcela" placeholder="Calculado auto" readonly
+            style="background:#f5f5f5"/>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn" id="btnCancelarVenda"
+        style="background:#eee;color:#333">Cancelar</button>
+      <button class="btn btn-success" id="btnSalvarVenda">Registrar Venda</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { requireAuth, preencherSidebar, logout, db, fmt, fmtData,
+    collection, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc,
+    query, orderBy, where, Timestamp, calcParcelas }
+    from "./app.js";
+
+  let userData;
+  let produtosEstoque = [];
+  let vendasCache = [];
+  let editandoVendaId = null;
+  let vendaOriginal = null;
+  let aliquotasImposto = [];
+  let itensVenda = []; // Array de itens da venda
+  const ORCAMENTO_RASCUNHO_KEY = "neoappleone_venda_rascunho";
+  const CONFIG_IMPOSTOS_REF = doc(db, "configuracoes", "aliquotasImposto");
+
+  requireAuth(async (user, ud) => {
+    try {
+      userData = ud;
+      preencherSidebar(ud);
+      document.getElementById("btnLogout").addEventListener("click", logout);
+
+      if (ud.perfil === "visualizacao") {
+        document.getElementById("avisoVisualizacao").style.display = "block";
+        document.getElementById("btnNovaVenda").style.display = "none";
+      }
+
+      // Data padrão hoje
+      document.getElementById("f-dataVenda").value =
+        new Date().toISOString().split("T")[0];
+
+      await carregarAliquotasImposto();
+      await carregarProdutosSelect();
+      await carregarVendas();
+      setupParcelamento();
+      initFiltroVenda();
+    } catch (e) {
+      console.error(e);
+      alert("Erro ao carregar a tela de vendas. Verifique as permissões do Firestore e tente novamente.");
+    }
+  });
+
+  function initFiltroVenda() {
+    const urlVendaId = new URLSearchParams(window.location.search).get("vendaId");
+    if (urlVendaId) {
+      document.getElementById("filtroVendaId").value = urlVendaId;
+      aplicarFiltroVendas();
+    }
+
+    document.getElementById("btnAplicarFiltro").addEventListener("click", aplicarFiltroVendas);
+    document.getElementById("btnLimparFiltros").addEventListener("click", limparFiltros);
+    
+    ["filtroVendaId", "filtroCliente", "filtroProduto"].forEach(id => {
+      document.getElementById(id).addEventListener("keydown", (e) => {
+        if (e.key === "Enter") aplicarFiltroVendas();
+      });
+    });
+  }
+
+  function limparFiltros() {
+    document.getElementById("filtroVendaId").value = "";
+    document.getElementById("filtroDataInicio").value = "";
+    document.getElementById("filtroDataFim").value = "";
+    document.getElementById("filtroCliente").value = "";
+    document.getElementById("filtroProduto").value = "";
+    renderVendas(vendasCache);
+  }
+
+  function aplicarFiltroVendas() {
+    const filtroId = document.getElementById("filtroVendaId").value.trim().toLowerCase();
+    const filtroDataInicio = document.getElementById("filtroDataInicio").value;
+    const filtroDataFim = document.getElementById("filtroDataFim").value;
+    const filtroCliente = document.getElementById("filtroCliente").value.trim().toLowerCase();
+    const filtroProduto = document.getElementById("filtroProduto").value.trim().toLowerCase();
+
+    const inicio = filtroDataInicio ? new Date(filtroDataInicio).getTime() : null;
+    const fim = filtroDataFim ? new Date(filtroDataFim).getTime() + 86400000 : null;
+
+    const lista = vendasCache.filter(v => {
+      if (filtroId && !(v.id || "").toLowerCase().includes(filtroId)) return false;
+      if (filtroCliente && !(v.nomeCliente || "").toLowerCase().includes(filtroCliente) && 
+          !(v.telefoneCliente || "").includes(filtroCliente)) return false;
+      if (filtroProduto && !(v.nomeProduto || "").toLowerCase().includes(filtroProduto)) return false;
+      if (inicio || fim) {
+        const dataVenda = v.criadoEm?.toMillis ? v.criadoEm.toMillis() : new Date(v.criadoEm).getTime();
+        if (inicio && dataVenda < inicio) return false;
+        if (fim && dataVenda > fim) return false;
+      }
+      return true;
+    });
+    renderVendas(lista);
+  }
+
+  function renderVendas(lista) {
+    const tbody = document.getElementById("tbVendas");
+    tbody.innerHTML = "";
+    if (!lista.length) {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:#aaa">Nenhuma venda encontrada</td></tr>`;
+      return;
+    }
+
+    let totalVendas = 0;
+    let totalLucro = 0;
+    let totalQtd = 0;
+
+    lista.forEach(v => {
+      const lucro = v.lucroLiquido || 0;
+      totalVendas += Number(v.precoVenda || 0);
+      totalLucro += Number(lucro || 0);
+      totalQtd += Number(v.quantidadeVendida || 0);
+      const corLucro = lucro >= 0 ? "color:#2e7d32" : "color:#c62828";
+      const precoVenda = Number(v.precoVenda || 0);
+      const lucroPercent = precoVenda > 0 ? ((lucro / precoVenda) * 100).toFixed(2) : 0;
+      const qtdVenda = parseInt(v.quantidadeVendida, 10) || 1;
+      const produtoLabel = qtdVenda > 1 ? `${v.nomeProduto || "—"} (${qtdVenda} un.)` : (v.nomeProduto || "—");
+
+      tbody.innerHTML += `
+        <tr>
+          <td>${produtoLabel}<br><small style="color:#888">ID: ${v.id}</small></td>
+          <td>${v.nomeCliente || "—"}<br><small style="color:#aaa">${v.telefoneCliente||""}</small></td>
+          <td>${fmtData(v.criadoEm)}</td>
+          <td>${fmt(v.precoVenda)}<br><small style="color:#888">Unit.: ${fmt(v.precoUnitario || 0)}</small></td>
+          <td style="${corLucro}">${fmt(lucro)}</td>
+          <td style="${corLucro}"><strong>${lucroPercent}%</strong></td>
+          <td>
+            <span class="badge badge-blue">${v.formaPagamento || "—"}</span>
+            ${v.abaixoMinimo ? '<br><small style="color:#c62828">Abaixo do mínimo</small>' : ""}
+          </td>
+          <td>
+            ${userData.perfil !== "visualizacao"
+              ? `<button class="btn btn-sm" style="background:#eee" onclick="editarVenda('${v.id}')">✏️</button>
+                 <button class="btn btn-sm" style="background:#f0f0f0" onclick="verHistoricoVenda('${v.id}')">🕘</button>
+                 <button class="btn btn-danger btn-sm" onclick="excluirVenda('${v.id}')">🗑️</button>`
+              : "—"}
+          </td>
+        </tr>`;
+    });
+
+    const percLucroTotal = totalVendas > 0 ? ((totalLucro / totalVendas) * 100) : 0;
+    const corLucroTotal = totalLucro >= 0 ? "#2e7d32" : "#c62828";
+    tbody.innerHTML += `
+      <tr style="background:#f8fafc;font-weight:700;border-top:2px solid #e5e7eb">
+        <td>TOTAL (${totalQtd} un.)</td>
+        <td>—</td>
+        <td>—</td>
+        <td>${fmt(totalVendas)}</td>
+        <td style="color:${corLucroTotal}">${fmt(totalLucro)}</td>
+        <td style="color:${corLucroTotal}"><strong>${percLucroTotal.toFixed(2)}%</strong></td>
+        <td colspan="2">Conferência da listagem atual</td>
+      </tr>`;
+  }
+
+  function toDateSafe(valor) {
+    if (!valor) return null;
+    if (typeof valor.toDate === "function") return valor.toDate();
+    const dt = new Date(valor);
+    return isNaN(dt.getTime()) ? null : dt;
+  }
+
+  function mesKeyFromDate(dateObj) {
+    const ano = dateObj.getFullYear();
+    const mes = String(dateObj.getMonth() + 1).padStart(2, "0");
+    return `${ano}-${mes}`;
+  }
+
+  function intervaloMesInclui(mesRef, inicioMes, fimMes) {
+    if (!mesRef || !inicioMes || !fimMes) return false;
+    return mesRef >= inicioMes && mesRef <= fimMes;
+  }
+
+  async function carregarAliquotasImposto() {
+    const snap = await getDoc(CONFIG_IMPOSTOS_REF);
+    if (!snap.exists()) {
+      aliquotasImposto = [];
+      return;
+    }
+    const lista = Array.isArray(snap.data()?.vigencias) ? snap.data().vigencias : [];
+    aliquotasImposto = lista
+      .filter(v => v?.inicioMes && v?.fimMes && Number.isFinite(Number(v.aliquota)))
+      .map(v => ({
+        inicioMes: String(v.inicioMes),
+        fimMes: String(v.fimMes),
+        aliquota: Number(v.aliquota)
+      }))
+      .sort((a, b) => a.inicioMes.localeCompare(b.inicioMes));
+  }
+
+  function getAliquotaImpostoPorData(dataRef, fallback) {
+    const dt = toDateSafe(dataRef) || new Date();
+    const mesRef = mesKeyFromDate(dt);
+    const match = aliquotasImposto.find(v => intervaloMesInclui(mesRef, v.inicioMes, v.fimMes));
+    if (match) return Number(match.aliquota);
+    return Number.isFinite(Number(fallback)) ? Number(fallback) : 9;
+  }
+
+  function roundMoney(valor) {
+    return Math.round((Number(valor) + Number.EPSILON) * 100) / 100;
+  }
+
+  function createdEmToMillis(v) {
+    if (!v?.criadoEm) return 0;
+    if (typeof v.criadoEm.toMillis === "function") return v.criadoEm.toMillis();
+    const dt = new Date(v.criadoEm);
+    return isNaN(dt.getTime()) ? 0 : dt.getTime();
+  }
+
+  function produtoQtdDisponivel(p) {
+    const qtd = parseInt(p?.quantidade, 10);
+    if (Number.isFinite(qtd)) return Math.max(qtd, 0);
+    return 1;
+  }
+
+  function configurarModoEdicao(ativo) {
+    document.getElementById("f-adicionarProduto").disabled = ativo;
+    document.getElementById("f-adicionarQtd").disabled = ativo;
+    document.getElementById("f-formaPag").disabled = ativo;
+    document.getElementById("btnAdicionarProduto").disabled = ativo;
+    document.getElementById("modalVendaTitulo").textContent = ativo ? "Editar Venda" : "Nova Venda";
+    document.getElementById("btnSalvarVenda").textContent = ativo ? "Salvar Alterações" : "Registrar Venda";
+  }
+
+  function resetarModalVenda() {
+    editandoVendaId = null;
+    vendaOriginal = null;
+    itensVenda = [];
+    document.getElementById("f-adicionarProduto").value = "";
+    document.getElementById("f-adicionarQtd").value = "1";
+    document.getElementById("f-cliente").value = "";
+    document.getElementById("f-telefone").value = "";
+    document.getElementById("f-cpf").value = "";
+    document.getElementById("f-profissao").value = "";
+    document.getElementById("f-endereco").value = "";
+    document.getElementById("f-custoTotal").value = "";
+    document.getElementById("f-precoVenda").value = "";
+    document.getElementById("f-freteVenda").value = "0";
+    document.getElementById("f-precoMinimoRef").value = "";
+    document.getElementById("f-formaPag").value = "à vista";
+    document.getElementById("f-entrada").value = "";
+    document.getElementById("f-numParcelas").value = "";
+    document.getElementById("f-juros").value = "1.5";
+    document.getElementById("f-valorParcela").value = "";
+    document.getElementById("secaoParc").style.display = "none";
+    document.getElementById("f-dataVenda").value = new Date().toISOString().split("T")[0];
+    renderItensVenda();
+    configurarModoEdicao(false);
+  }
+
+  async function carregarProdutosSelect() {
+    const sel = document.getElementById("f-adicionarProduto");
+    sel.innerHTML = `<option value="">— Selecione para adicionar —</option>`;
+    produtosEstoque = [];
+
+    let lista = [];
+    try {
+      const snap = await getDocs(query(collection(db, "produtos"), orderBy("criadoEm", "desc")));
+      snap.forEach(d => lista.push({ id: d.id, ...d.data() }));
+    } catch (e) {
+      const snap = await getDocs(collection(db, "produtos"));
+      snap.forEach(d => lista.push({ id: d.id, ...d.data() }));
+      lista.sort((a, b) => createdEmToMillis(b) - createdEmToMillis(a));
+    }
+
+    produtosEstoque = lista
+      .map(p => ({
+        ...p,
+        status: produtoQtdDisponivel(p) > 0 ? "estoque" : (p.status || "vendido")
+      }))
+      .filter(p => produtoQtdDisponivel(p) > 0);
+    produtosEstoque.forEach(p => {
+      const opt = document.createElement("option");
+      const qtdDisp = produtoQtdDisponivel(p);
+      opt.value = p.id;
+      opt.textContent = `${p.nome} — ${p.cor || ""} ${p.armazenamento || ""} (Qtd: ${qtdDisp})`;
+      sel.appendChild(opt);
+    });
+  }
+
+  function adicionarItemVenda() {
+    const produtoId = document.getElementById("f-adicionarProduto").value;
+    const quantidade = parseInt(document.getElementById("f-adicionarQtd").value, 10) || 1;
+    
+    if (!produtoId) {
+      alert("Selecione um produto");
+      return;
+    }
+    
+    const p = produtosEstoque.find(x => x.id === produtoId);
+    if (!p) {
+      alert("Produto não encontrado");
+      return;
+    }
+
+    const qtdDisp = produtoQtdDisponivel(p);
+    if (quantidade < 1) {
+      alert("Quantidade deve ser maior que zero");
+      return;
+    }
+    if (quantidade > qtdDisp) {
+      alert(`Quantidade insuficiente em estoque. Disponível: ${qtdDisp}`);
+      return;
+    }
+
+    // Verificar se produto já está adicionado (não permitir duplicatas)
+    const existe = itensVenda.find(item => item.produtoId === produtoId);
+    if (existe) {
+      alert("Este produto já foi adicionado à venda");
+      return;
+    }
+
+    const precoSugerido = p.precoVendaSugerido || 0;
+    const custoUnit = (p.precoCompra || 0) + (p.freteCompra || 0) + (p.brinde || 0);
+    
+    itensVenda.push({
+      produtoId: p.id,
+      nomeProduto: p.nome,
+      quantidade: quantidade,
+      precoUnitario: precoSugerido,
+      custoUnitario: custoUnit,
+      subtotal: precoSugerido * quantidade,
+      custoTotal: custoUnit * quantidade
+    });
+
+    renderItensVenda();
+    recalcularTotais();
+    
+    // Limpar campos
+    document.getElementById("f-adicionarProduto").value = "";
+    document.getElementById("f-adicionarQtd").value = "1";
+  }
+
+  function removerItemVenda(index) {
+    itensVenda.splice(index, 1);
+    renderItensVenda();
+    recalcularTotais();
+  }
+
+  function renderItensVenda() {
+    const tbody = document.getElementById("tbItensVenda");
+    if (itensVenda.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;color:#aaa;padding:8px">Nenhum produto adicionado</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = itensVenda.map((item, idx) => `
+      <tr>
+        <td style="padding:4px">${item.nomeProduto}</td>
+        <td style="text-align:center;padding:4px">${item.quantidade}</td>
+        <td style="text-align:right;padding:4px">${fmt(item.precoUnitario)}</td>
+        <td style="text-align:right;padding:4px">${fmt(item.subtotal)}</td>
+        <td style="text-align:center;padding:4px">
+          <button class="btn btn-sm" style="background:#fee;color:#c62828;padding:2px 6px" onclick="removerItemVenda(${idx})">✕</button>
+        </td>
+      </tr>
+    `).join("");
+  }
+
+  function recalcularTotais() {
+    let totalCusto = 0;
+    let totalVenda = 0;
+    let totalQtd = 0;
+
+    itensVenda.forEach(item => {
+      totalCusto += item.custoTotal;
+      totalVenda += item.subtotal;
+      totalQtd += item.quantidade;
+    });
+
+    document.getElementById("f-custoTotal").value = totalCusto.toFixed(2);
+    document.getElementById("f-precoVenda").value = totalVenda.toFixed(2);
+
+    // Calcular preço mínimo total
+    if (itensVenda.length > 0) {
+      let totalMinimo = 0;
+      itensVenda.forEach(item => {
+        const p = produtosEstoque.find(x => x.id === item.produtoId);
+        if (p) {
+          const minimoUnit = p.precoMinimo || p.precoVendaSugerido || 0;
+          totalMinimo += minimoUnit * item.quantidade;
+        }
+      });
+      document.getElementById("f-precoMinimoRef").value = totalMinimo.toFixed(2);
+    } else {
+      document.getElementById("f-precoMinimoRef").value = "";
+    }
+
+    recalcParcela();
+  }
+
+  function setupParcelamento() {
+    document.getElementById("f-formaPag").addEventListener("change", function() {
+      document.getElementById("secaoParc").style.display =
+        this.value === "parcelado" ? "block" : "none";
+    });
+
+    ["f-precoVenda","f-entrada","f-numParcelas","f-juros"].forEach(id => {
+      document.getElementById(id).addEventListener("input", recalcParcela);
+    });
+
+    document.getElementById("btnAdicionarProduto").addEventListener("click", adicionarItemVenda);
+    document.getElementById("f-adicionarQtd").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") adicionarItemVenda();
+    });
+    document.getElementById("f-adicionarProduto").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") adicionarItemVenda();
+    });
+  }
+
+  function recalcParcela() {
+    const pv    = parseFloat(document.getElementById("f-precoVenda").value)  || 0;
+    const ent   = parseFloat(document.getElementById("f-entrada").value)     || 0;
+    const nParc = parseInt(document.getElementById("f-numParcelas").value)   || 0;
+    const jur   = parseFloat(document.getElementById("f-juros").value)       || 0;
+    if (pv > 0 && nParc > 0) {
+      const saldo = pv - ent;
+      const parc  = calcParcelas(saldo, nParc, jur);
+      document.getElementById("f-valorParcela").value = parc.toFixed(2);
+    }
+  }
+
+  async function carregarVendas() {
+    const tbody = document.getElementById("tbVendas");
+    tbody.innerHTML = "";
+
+    try {
+      let docs = [];
+      try {
+        const snap = await getDocs(query(collection(db, "vendas"), orderBy("criadoEm", "desc")));
+        snap.forEach(d => docs.push({ id: d.id, ...d.data() }));
+      } catch (e) {
+        // Fallback sem orderBy para não travar a tabela.
+        const snap = await getDocs(collection(db, "vendas"));
+        snap.forEach(d => docs.push({ id: d.id, ...d.data() }));
+        docs.sort((a, b) => createdEmToMillis(b) - createdEmToMillis(a));
+      }
+
+      vendasCache = docs;
+      renderVendas(docs);
+      if (document.getElementById("filtroVendaId")?.value?.trim()) {
+        aplicarFiltroVendas();
+      }
+    } catch (e) {
+      console.error(e);
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#c62828">Erro ao carregar vendas</td></tr>`;
+    }
+  }
+
+  document.getElementById("btnNovaVenda").addEventListener("click", () => {
+    resetarModalVenda();
+    document.getElementById("modalVenda").classList.add("open");
+  });
+
+  document.getElementById("btnCancelarVenda").addEventListener("click", () => {
+    document.getElementById("modalVenda").classList.remove("open");
+    resetarModalVenda();
+  });
+
+  window.editarVenda = async (id) => {
+    const venda = vendasCache.find(v => v.id === id);
+    if (!venda) return;
+    
+    editandoVendaId = id;
+    vendaOriginal = venda;
+    itensVenda = [{
+      produtoId: venda.produtoId,
+      nomeProduto: venda.nomeProduto,
+      quantidade: venda.quantidadeVendida || 1,
+      precoUnitario: (venda.precoUnitario || 0),
+      custoUnitario: (venda.custoTotal || 0) / (venda.quantidadeVendida || 1),
+      subtotal: venda.precoVenda || 0,
+      custoTotal: venda.custoTotal || 0
+    }];
+
+    document.getElementById("f-cliente").value = venda.nomeCliente || "";
+    document.getElementById("f-telefone").value = venda.telefoneCliente || "";
+    document.getElementById("f-cpf").value = venda.cpfCliente || "";
+    document.getElementById("f-profissao").value = venda.profissaoCliente || "";
+    document.getElementById("f-endereco").value = venda.enderecoCliente || "";
+    document.getElementById("f-custoTotal").value = (venda.custoTotal || 0).toFixed(2);
+    document.getElementById("f-precoVenda").value = (venda.precoVenda || 0).toFixed(2);
+    document.getElementById("f-freteVenda").value = venda.freteVenda || "0";
+    document.getElementById("f-precoMinimoRef").value = (venda.precoMinimoReferencia || 0).toFixed(2);
+    document.getElementById("f-formaPag").value = venda.formaPagamento || "à vista";
+    document.getElementById("f-dataVenda").value = venda.criadoEm?.toDate
+      ? venda.criadoEm.toDate().toISOString().split("T")[0]
+      : new Date(venda.criadoEm).toISOString().split("T")[0];
+    document.getElementById("f-entrada").value = venda.entrada || "";
+    document.getElementById("f-numParcelas").value = venda.numParcelas || "";
+    document.getElementById("f-juros").value = venda.juros || "1.5";
+    document.getElementById("f-valorParcela").value = venda.valorParcela || "";
+    document.getElementById("secaoParc").style.display = venda.formaPagamento === "parcelado" ? "block" : "none";
+    
+    renderItensVenda();
+    configurarModoEdicao(true);
+    document.getElementById("modalVenda").classList.add("open");
+  };
+
+  window.verHistoricoVenda = (id) => {
+    const venda = vendasCache.find(v => v.id === id);
+    const hist = Array.isArray(venda?.historicoEdicoes) ? venda.historicoEdicoes : [];
+    if (!hist.length) {
+      alert("Nenhum histórico de edição para esta venda.");
+      return;
+    }
+    const texto = hist.slice(-5).map(item => {
+      const quando = item.em?.toDate ? item.em.toDate().toLocaleString("pt-BR") : "data indisponível";
+      return `${quando} | ${item.por}: ${item.campos.join(", ")}`;
+    }).join("\n");
+    alert(texto);
+  };
+
+  document.getElementById("btnSalvarVenda").addEventListener("click", async () => {
+    const cliente = document.getElementById("f-cliente").value.trim();
+    const precoVenda = parseFloat(document.getElementById("f-precoVenda").value);
+    const formaPag = document.getElementById("f-formaPag").value;
+    const dataVenda = document.getElementById("f-dataVenda").value;
+    const dataVendaRef = dataVenda ? new Date(`${dataVenda}T12:00:00`) : new Date();
+    const freteVenda = parseFloat(document.getElementById("f-freteVenda").value) || 0;
+
+    if (itensVenda.length === 0) {
+      alert("Adicione pelo menos um produto à venda.");
+      return;
+    }
+
+    if (!cliente) {
+      alert("Informe o nome do cliente.");
+      return;
+    }
+
+    if (isNaN(precoVenda) || precoVenda <= 0) {
+      alert("Preço total deve ser maior que zero.");
+      return;
+    }
+
+    // Para modo edição, apenas atualizar dados do cliente e preço
+    if (editandoVendaId) {
+      const historico = Array.isArray(vendaOriginal.historicoEdicoes) ? vendaOriginal.historicoEdicoes : [];
+      const camposAlterados = [];
+      if ((vendaOriginal.nomeCliente || "") !== cliente) camposAlterados.push("cliente");
+      if (roundMoney(vendaOriginal.precoVenda || 0) !== roundMoney(precoVenda)) camposAlterados.push("preco total");
+
+      if (camposAlterados.length > 0) {
+        historico.push({
+          em: Timestamp.now(),
+          por: userData.email || userData.nome || "usuario",
+          campos: camposAlterados
+        });
+      }
+
+      await updateDoc(doc(db, "vendas", editandoVendaId), {
+        nomeCliente: cliente,
+        telefoneCliente: document.getElementById("f-telefone").value.trim(),
+        cpfCliente: document.getElementById("f-cpf").value.trim(),
+        profissaoCliente: document.getElementById("f-profissao").value.trim(),
+        enderecoCliente: document.getElementById("f-endereco").value.trim(),
+        precoVenda: roundMoney(precoVenda),
+        criadoEm: dataVenda ? Timestamp.fromDate(new Date(dataVenda)) : Timestamp.now(),
+        historicoEdicoes: historico
+      });
+
+      document.getElementById("modalVenda").classList.remove("open");
+      resetarModalVenda();
+      await carregarVendas();
+      alert("Venda atualizada com sucesso!");
+      return;
+    }
+
+    // Novo registro: validar estoque para cada produto
+    for (const item of itensVenda) {
+      const p = produtosEstoque.find(x => x.id === item.produtoId);
+      if (!p) {
+        alert(`Produto não encontrado: ${item.nomeProduto}`);
+        return;
+      }
+      const qtdDisp = produtoQtdDisponivel(p);
+      if (item.quantidade > qtdDisp) {
+        alert(`${item.nomeProduto}: Quantidade insuficiente. Disponível: ${qtdDisp}.`);
+        return;
+      }
+    }
+
+    // Calcular lucro total
+    const custoTotal = parseFloat(document.getElementById("f-custoTotal").value) || 0;
+    const impostoPercentual = getAliquotaImpostoPorData(dataVendaRef, 9);
+    const imposto = impostoPercentual / 100;
+    const impostoValue = precoVenda * imposto;
+    const lucroLiquido = precoVenda - custoTotal - impostoValue;
+
+    // Verificar se está abaixo do mínimo
+    const precoMinimoRef = parseFloat(document.getElementById("f-precoMinimoRef").value) || 0;
+    let justificativaDesconto = "";
+    const abaixoMinimo = roundMoney(precoVenda) < roundMoney(precoMinimoRef);
+    if (abaixoMinimo) {
+      justificativaDesconto = prompt(
+        `Venda abaixo do mínimo (${fmt(precoMinimoRef)}). Informe justificativa para continuar:`
+      ) || "";
+      if (!justificativaDesconto.trim()) {
+        alert("Justificativa é obrigatória para vender abaixo do preço mínimo.");
+        return;
+      }
+    }
+
+    // Montar string resumida de produtos (ex: "iPhone 13 (1) + Cabo USB (2)")
+    const produtosResumo = itensVenda.map(item => `${item.nomeProduto} (${item.quantidade})`).join(" + ");
+
+    const venda = {
+      itens: itensVenda.map(item => ({
+        produtoId: item.produtoId,
+        nomeProduto: item.nomeProduto,
+        quantidade: item.quantidade,
+        precoUnitario: roundMoney(item.precoUnitario),
+        custoUnitario: roundMoney(item.custoUnitario)
+      })),
+      produtosResumo,
+      nomeProduto: produtosResumo, // Para compatibilidade com rendering antigo
+      quantidadeVendida: itensVenda.reduce((sum, item) => sum + item.quantidade, 0),
+      nomeCliente: cliente,
+      telefoneCliente: document.getElementById("f-telefone").value.trim(),
+      cpfCliente: document.getElementById("f-cpf").value.trim(),
+      profissaoCliente: document.getElementById("f-profissao").value.trim(),
+      enderecoCliente: document.getElementById("f-endereco").value.trim(),
+      precoVenda: roundMoney(precoVenda),
+      precoMinimoReferencia: roundMoney(precoMinimoRef),
+      abaixoMinimo,
+      justificativaDesconto,
+      custoTotal: roundMoney(custoTotal),
+      lucroLiquido: roundMoney(lucroLiquido),
+      impostoPercentualAplicado: impostoPercentual,
+      freteVenda,
+      formaPagamento: formaPag,
+      criadoEm: dataVenda ? Timestamp.fromDate(new Date(dataVenda)) : Timestamp.now()
+    };
+
+    // Parcelamento
+    if (formaPag === "parcelado") {
+      const entrada = parseFloat(document.getElementById("f-entrada").value) || 0;
+      const numParcelas = parseInt(document.getElementById("f-numParcelas").value) || 1;
+      const juros = parseFloat(document.getElementById("f-juros").value) || 0;
+      const saldo = precoVenda - entrada;
+      const valorParc = calcParcelas(saldo, numParcelas, juros);
+
+      venda.entrada = entrada;
+      venda.numParcelas = numParcelas;
+      venda.juros = juros;
+      venda.valorParcela = valorParc;
+
+      const vendaRef = await addDoc(collection(db, "vendas"), venda);
+
+      const hoje = new Date();
+      if (entrada > 0) {
+        await addDoc(collection(db, "parcelas"), {
+          vendaId: vendaRef.id,
+          nomeProduto: produtosResumo,
+          nomeCliente: cliente,
+          numero: 0,
+          valor: entrada,
+          tipo: "entrada",
+          status: "paga",
+          vencimento: Timestamp.fromDate(hoje),
+          pagoEm: Timestamp.fromDate(hoje),
+          criadoEm: Timestamp.now()
+        });
+      }
+      for (let p = 1; p <= numParcelas; p++) {
+        const venc = new Date(hoje);
+        venc.setMonth(venc.getMonth() + p);
+        await addDoc(collection(db, "parcelas"), {
+          vendaId: vendaRef.id,
+          nomeProduto: produtosResumo,
+          nomeCliente: cliente,
+          numero: p,
+          valor: valorParc,
+          tipo: "parcela",
+          status: "aberta",
+          vencimento: Timestamp.fromDate(venc),
+          criadoEm: Timestamp.now()
+        });
+      }
+    } else {
+      await addDoc(collection(db, "vendas"), venda);
+    }
+
+    // Dar baixa em estoque para cada produto vendido
+    for (const item of itensVenda) {
+      const p = produtosEstoque.find(x => x.id === item.produtoId);
+      if (p) {
+        const qtdDisp = produtoQtdDisponivel(p);
+        const novoSaldo = qtdDisp - item.quantidade;
+        const novoStatus = novoSaldo > 0 ? "estoque" : "vendido";
+        await updateDoc(doc(db, "produtos", item.produtoId), {
+          quantidade: novoSaldo,
+          status: novoStatus
+        });
+      }
+    }
+
+    document.getElementById("modalVenda").classList.remove("open");
+    resetarModalVenda();
+    await carregarProdutosSelect();
+    await carregarVendas();
+    alert("Venda registrada com sucesso!");
+  });
+
+  window.excluirVenda = async (id) => {
+    if (!confirm("Excluir esta venda? Os produtos voltarão ao estoque.")) return;
+
+    const vendaSnap = await getDoc(doc(db, "vendas", id));
+    if (!vendaSnap.exists()) return;
+    const vendaData = vendaSnap.data();
+    const itensVendaArray = Array.isArray(vendaData.itens) ? vendaData.itens : [];
+
+    // Remove parcelas vinculadas
+    const parcelasSnap = await getDocs(query(collection(db, "parcelas"), where("vendaId", "==", id)));
+    for (const parcelaDoc of parcelasSnap.docs) {
+      await deleteDoc(doc(db, "parcelas", parcelaDoc.id));
+    }
+
+    const devolverAoEstoque = confirm(
+      "Deseja devolver essas unidades ao estoque? Clique em Cancelar se você já ajustou manualmente."
+    );
+
+    await deleteDoc(doc(db, "vendas", id));
+
+    if (devolverAoEstoque) {
+      // Se é venda com múltiplos itens
+      if (itensVendaArray.length > 0) {
+        for (const item of itensVendaArray) {
+          const prodRef = doc(db, "produtos", item.produtoId);
+          const prodSnap = await getDoc(prodRef);
+          if (prodSnap.exists()) {
+            const atual = prodSnap.data();
+            const qtdAtual = parseInt(atual.quantidade, 10) || 0;
+            await updateDoc(prodRef, {
+              quantidade: qtdAtual + item.quantidade,
+              status: (qtdAtual + item.quantidade) > 0 ? "estoque" : "vendido"
+            });
+          }
+        }
+      } else {
+        // Se é venda antiga com campo produtoId único
+        const produtoId = vendaData.produtoId;
+        if (produtoId) {
+          const qtdVendida = parseInt(vendaData.quantidadeVendida, 10) || 1;
+          const prodRef = doc(db, "produtos", produtoId);
+          const prodSnap = await getDoc(prodRef);
+          if (prodSnap.exists()) {
+            const atual = prodSnap.data();
+            const qtdAtual = parseInt(atual.quantidade, 10) || 0;
+            await updateDoc(prodRef, {
+              quantidade: qtdAtual + qtdVendida,
+              status: (qtdAtual + qtdVendida) > 0 ? "estoque" : "vendido"
+            });
+          }
+        }
+      }
+    }
+
+    await carregarProdutosSelect();
+    await carregarVendas();
+  };
+</script>
+</body>
+</html>

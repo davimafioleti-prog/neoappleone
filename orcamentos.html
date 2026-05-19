@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Orçamentos</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<div id="loading">Carregando...</div>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><img src="logo.png.jpg" alt="NeoApple One"/> NeoApple One</div>
+    <nav>
+      <a href="dashboard.html"><span class="icon">🏠</span> Dashboard</a>
+      <a href="produtos.html"><span class="icon">📦</span> Produtos</a>
+      <a href="entradas.html"><span class="icon">📥</span> Entradas</a>
+      <a href="orcamentos.html" class="active"><span class="icon">🧾</span> Orçamentos</a>
+      <a href="vendas.html"><span class="icon">💰</span> Vendas</a>
+      <a href="parcelas.html"><span class="icon">💳</span> Parcelas</a>
+      <a href="investimentos.html"><span class="icon">🏦</span> Investimentos</a>
+      <a href="saques.html"><span class="icon">💸</span> Saques</a>
+      <a href="usuarios.html" id="menu-usuarios"><span class="icon">👥</span> Usuários</a>
+    </nav>
+    <div class="sidebar-footer">
+      <span class="badge" id="sb-perfil">—</span>
+      <strong id="sb-nome">—</strong>
+      <button class="btn-logout" id="btnLogout">Sair</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="page-title">Orçamentos & Ofertas</div>
+    <div id="avisoVisualizacao" class="acesso-negado">
+      Perfil de visualização: você não pode registrar ou editar orçamentos.
+    </div>
+
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:end">
+      <div class="form-group" style="margin-bottom:0">
+        <label>Período (Data Inicial)</label>
+        <input type="date" id="filtroDataInicio"/>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label>Período (Data Final)</label>
+        <input type="date" id="filtroDataFim"/>
+      </div>
+      <div class="form-group" style="margin-bottom:0;min-width:180px">
+        <label>Produto</label>
+        <input type="text" id="filtroProdutoOrc" placeholder="Nome"/>
+      </div>
+      <div class="form-group" style="margin-bottom:0;min-width:180px">
+        <label>Cliente</label>
+        <input type="text" id="filtroClienteOrc" placeholder="Nome"/>
+      </div>
+      <button class="btn btn-primary btn-sm" id="btnAplicarFiltroOrc">Aplicar</button>
+      <button class="btn btn-sm" id="btnLimparFiltrosOrc" style="background:#eee;color:#333">Limpar</button>
+    </div>
+
+    <div class="table-container">
+      <div class="table-header">
+        <h2>Pipeline Comercial</h2>
+        <button class="btn btn-primary btn-sm" id="btnNovoOrcamento">+ Novo Orçamento</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Produto</th>
+            <th>Cliente</th>
+            <th>Oferta</th>
+            <th>Status</th>
+            <th>Atualização</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="tbOrcamentos">
+          <tr><td colspan="6" style="text-align:center;color:#aaa">Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="modalOrcamento">
+  <div class="modal">
+    <h2 id="modalTituloOrc">Novo Orçamento</h2>
+
+    <div class="section-divider">Cliente e Produto</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Cliente *</label>
+        <input type="text" id="f-clienteOrc" placeholder="Nome do cliente"/>
+      </div>
+      <div class="form-group">
+        <label>Telefone</label>
+        <input type="text" id="f-telefoneOrc" placeholder="(00) 00000-0000"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Produto cadastrado</label>
+      <select id="f-produtoCatalogoOrc">
+        <option value="">— Selecionar do cadastro —</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Produto/Modelo *</label>
+      <input type="text" id="f-produtoOrc" placeholder="Ex: iPhone 14 Pro 256GB"/>
+    </div>
+    <div id="infoProdutoOrc" style="background:#f0f4f8;border-radius:8px;padding:10px;font-size:12px;color:#555;margin-bottom:10px;display:none">
+      Preço sugerido: <strong id="io-sugerido">—</strong> |
+      Preço mínimo: <strong id="io-minimo">—</strong> |
+      Estoque: <strong id="io-saldo">—</strong>
+    </div>
+
+    <div class="section-divider">Proposta</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Valor Ofertado (R$) *</label>
+        <input type="number" id="f-valorOfertado" step="0.01" placeholder="0,00"/>
+      </div>
+      <div class="form-group">
+        <label>Valor Mínimo (R$)</label>
+        <input type="number" id="f-valorMinimo" step="0.01" placeholder="0,00"/>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Status *</label>
+        <select id="f-statusOrc">
+          <option value="orcamento_enviado">Orçamento Enviado</option>
+          <option value="em_negociacao">Em Negociação</option>
+          <option value="ganho">Ganho</option>
+          <option value="convertido">Convertido em Venda</option>
+          <option value="perdido">Perdido</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Valor Fechado (R$)</label>
+        <input type="number" id="f-valorFechado" step="0.01" placeholder="Preencher se ganho"/>
+      </div>
+    </div>
+    <div class="form-group" id="grpMotivoPerda" style="display:none">
+      <label>Motivo da Perda *</label>
+      <textarea id="f-motivoPerda" rows="2" placeholder="Ex: concorrente com preço menor"></textarea>
+    </div>
+    <div class="form-group">
+      <label>Observações</label>
+      <textarea id="f-obsOrc" rows="2"></textarea>
+    </div>
+
+    <div class="form-actions">
+      <button class="btn" id="btnCancelarOrc" style="background:#eee;color:#333">Cancelar</button>
+      <button class="btn btn-primary" id="btnSalvarOrc">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { requireAuth, preencherSidebar, logout, db, fmt, fmtData,
+    collection, getDocs, getDoc, addDoc, updateDoc, deleteDoc, doc,
+    query, orderBy, Timestamp }
+    from "./app.js";
+
+  let userData;
+  let editandoId = null;
+  let produtosCatalogo = [];
+  let orcamentosCache = [];
+
+  const ORCAMENTO_RASCUNHO_KEY = "neoappleone_venda_rascunho";
+
+  requireAuth(async (user, ud) => {
+    userData = ud;
+    preencherSidebar(ud);
+
+    document.getElementById("btnLogout").addEventListener("click", logout);
+
+    if (ud.perfil === "visualizacao") {
+      document.getElementById("avisoVisualizacao").style.display = "block";
+      document.getElementById("btnNovoOrcamento").style.display = "none";
+    }
+
+    await carregarProdutosCatalogo();
+    await carregarOrcamentos();
+
+    document.getElementById("btnAplicarFiltroOrc").addEventListener("click", aplicarFiltrosOrc);
+    document.getElementById("btnLimparFiltrosOrc").addEventListener("click", limparFiltrosOrc);
+    ["filtroClienteOrc", "filtroProdutoOrc"].forEach(id => {
+      document.getElementById(id).addEventListener("keydown", (e) => {
+        if (e.key === "Enter") aplicarFiltrosOrc();
+      });
+    });
+  });
+
+  document.getElementById("f-statusOrc").addEventListener("change", toggleMotivoPerda);
+  document.getElementById("f-produtoCatalogoOrc").addEventListener("change", preencherProdutoSelecionado);
+
+  document.getElementById("btnNovoOrcamento").addEventListener("click", () => {
+    editandoId = null;
+    document.getElementById("modalTituloOrc").textContent = "Novo Orçamento";
+    limparModal();
+    document.getElementById("modalOrcamento").classList.add("open");
+  });
+
+  document.getElementById("btnCancelarOrc").addEventListener("click", () => {
+    document.getElementById("modalOrcamento").classList.remove("open");
+  });
+
+  document.getElementById("btnSalvarOrc").addEventListener("click", salvarOrcamento);
+
+  function saldoProduto(p) {
+    const qtd = parseInt(p?.quantidade, 10);
+    return Number.isFinite(qtd) ? qtd : 0;
+  }
+
+  function toMillis(valor) {
+    if (!valor) return NaN;
+    if (valor?.toMillis) return valor.toMillis();
+    return new Date(valor).getTime();
+  }
+
+  async function carregarProdutosCatalogo() {
+    const select = document.getElementById("f-produtoCatalogoOrc");
+    select.innerHTML = `<option value="">— Selecionar do cadastro —</option>`;
+    produtosCatalogo = [];
+
+    const snap = await getDocs(query(collection(db, "produtos"), orderBy("nome", "asc")));
+    snap.forEach(d => {
+      const p = { id: d.id, ...d.data() };
+      produtosCatalogo.push(p);
+      const opt = document.createElement("option");
+      opt.value = d.id;
+      opt.textContent = `${p.nome} — ${p.cor || ""} ${p.armazenamento || ""}`;
+      select.appendChild(opt);
+    });
+  }
+
+  function preencherProdutoSelecionado() {
+    const id = document.getElementById("f-produtoCatalogoOrc").value;
+    const info = document.getElementById("infoProdutoOrc");
+    const produto = produtosCatalogo.find(p => p.id === id);
+
+    if (!produto) {
+      info.style.display = "none";
+      return;
+    }
+
+    const nomeCompleto = [produto.nome, produto.cor, produto.armazenamento].filter(Boolean).join(" — ");
+    document.getElementById("f-produtoOrc").value = nomeCompleto || produto.nome || "";
+    document.getElementById("f-valorOfertado").value = Number(produto.precoVendaSugerido || 0).toFixed(2);
+    document.getElementById("f-valorMinimo").value = Number(produto.precoMinimo || 0).toFixed(2);
+    document.getElementById("io-sugerido").textContent = fmt(produto.precoVendaSugerido || 0);
+    document.getElementById("io-minimo").textContent = fmt(produto.precoMinimo || 0);
+    document.getElementById("io-saldo").textContent = saldoProduto(produto);
+    info.style.display = "block";
+  }
+
+  function statusBadge(status) {
+    if (status === "ganho") return '<span class="badge badge-green">Ganho</span>';
+    if (status === "convertido") return '<span class="badge badge-green">Convertido em Venda</span>';
+    if (status === "perdido") return '<span class="badge badge-red">Perdido</span>';
+    if (status === "em_negociacao") return '<span class="badge badge-yellow">Em Negociação</span>';
+    return '<span class="badge badge-blue">Orçamento Enviado</span>';
+  }
+
+  function toggleMotivoPerda() {
+    const status = document.getElementById("f-statusOrc").value;
+    document.getElementById("grpMotivoPerda").style.display = status === "perdido" ? "block" : "none";
+  }
+
+  function renderOrcamentos(lista) {
+    const tbody = document.getElementById("tbOrcamentos");
+    tbody.innerHTML = "";
+
+    if (!lista.length) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:#aaa">Nenhum orçamento encontrado</td></tr>`;
+      return;
+    }
+
+    lista.forEach(o => {
+      const ofertado = fmt(o.valorOfertado || 0);
+      const fechado = o.valorFechado ? `<br><small style="color:#2e7d32">Fechado: ${fmt(o.valorFechado)}</small>` : "";
+      const motivo = o.motivoPerda ? `<br><small style="color:#c62828">Motivo: ${o.motivoPerda}</small>` : "";
+
+      const acoes = userData.perfil !== "visualizacao"
+        ? `<button class="btn btn-sm" style="background:#eee" onclick="editarOrcamento('${o.id}')">✏️</button>
+          <button class="btn btn-sm" style="background:#e8f0fe;color:#1a73e8" onclick="converterOrcamento('${o.id}')">↪ Venda</button>
+          <button class="btn btn-danger btn-sm" onclick="excluirOrcamento('${o.id}')">🗑️</button>`
+        : "—";
+
+      tbody.innerHTML += `
+        <tr>
+          <td>${o.nomeProduto || "—"}<br><small style="color:#888">ID: ${o.id}</small></td>
+          <td>${o.nomeCliente || "—"}<br><small style="color:#aaa">${o.telefoneCliente || ""}</small></td>
+          <td>${ofertado}${fechado}</td>
+          <td>${statusBadge(o.status)}${motivo}</td>
+          <td>${fmtData(o.atualizadoEm || o.criadoEm)}</td>
+          <td>${acoes}</td>
+        </tr>`;
+    });
+  }
+
+  async function carregarOrcamentos() {
+    const snap = await getDocs(query(collection(db, "orcamentos"), orderBy("atualizadoEm", "desc")));
+    orcamentosCache = [];
+    snap.forEach(d => orcamentosCache.push({ id: d.id, ...d.data() }));
+    renderOrcamentos(orcamentosCache);
+  }
+
+  function limparFiltrosOrc() {
+    document.getElementById("filtroDataInicio").value = "";
+    document.getElementById("filtroDataFim").value = "";
+    document.getElementById("filtroProdutoOrc").value = "";
+    document.getElementById("filtroClienteOrc").value = "";
+    renderOrcamentos(orcamentosCache);
+  }
+
+  function aplicarFiltrosOrc() {
+    const dataInicio = document.getElementById("filtroDataInicio").value;
+    const dataFim = document.getElementById("filtroDataFim").value;
+    const cliente = document.getElementById("filtroClienteOrc").value.trim().toLowerCase();
+    const produto = document.getElementById("filtroProdutoOrc").value.trim().toLowerCase();
+
+    const inicio = dataInicio ? new Date(dataInicio).getTime() : null;
+    const fim = dataFim ? new Date(dataFim).getTime() + 86400000 : null;
+
+    const filtrada = orcamentosCache.filter(o => {
+      if (cliente && !(o.nomeCliente || "").toLowerCase().includes(cliente)) return false;
+      if (produto && !(o.nomeProduto || "").toLowerCase().includes(produto)) return false;
+
+      if (inicio || fim) {
+        const dataOrc = toMillis(o.atualizadoEm || o.criadoEm);
+        if (Number.isFinite(dataOrc)) {
+          if (inicio && dataOrc < inicio) return false;
+          if (fim && dataOrc > fim) return false;
+        }
+      }
+
+      return true;
+    });
+
+    renderOrcamentos(filtrada);
+  }
+
+  async function salvarOrcamento() {
+    const nomeCliente = document.getElementById("f-clienteOrc").value.trim();
+    const nomeProduto = document.getElementById("f-produtoOrc").value.trim();
+    const valorOfertado = parseFloat(document.getElementById("f-valorOfertado").value);
+    const valorMinimo = parseFloat(document.getElementById("f-valorMinimo").value) || 0;
+    const valorFechado = parseFloat(document.getElementById("f-valorFechado").value) || 0;
+    const status = document.getElementById("f-statusOrc").value;
+    const motivoPerda = document.getElementById("f-motivoPerda").value.trim();
+
+    if (!nomeCliente || !nomeProduto || isNaN(valorOfertado)) {
+      alert("Preencha cliente, produto e valor ofertado.");
+      return;
+    }
+
+    if (status === "perdido" && !motivoPerda) {
+      alert("Informe o motivo da perda.");
+      return;
+    }
+
+    const payload = {
+      produtoId: document.getElementById("f-produtoCatalogoOrc").value || "",
+      nomeCliente,
+      telefoneCliente: document.getElementById("f-telefoneOrc").value.trim(),
+      nomeProduto,
+      valorOfertado,
+      valorMinimo,
+      valorFechado,
+      status,
+      motivoPerda: status === "perdido" ? motivoPerda : "",
+      obs: document.getElementById("f-obsOrc").value.trim(),
+      atualizadoEm: Timestamp.now()
+    };
+
+    if (editandoId) {
+      const ref = doc(db, "orcamentos", editandoId);
+      const atualSnap = await getDoc(ref);
+
+      if (atualSnap.exists()) {
+        const atual = atualSnap.data();
+        if ((atual.status || "") !== status) {
+          const hist = Array.isArray(atual.historicoStatus) ? atual.historicoStatus : [];
+          hist.push({
+            de: atual.status || null,
+            para: status,
+            em: Timestamp.now(),
+            por: userData.email || userData.nome || "usuario"
+          });
+          payload.historicoStatus = hist.slice(-40);
+        }
+      }
+
+      await updateDoc(ref, payload);
+    } else {
+      payload.criadoEm = Timestamp.now();
+      payload.historicoStatus = [{
+        de: null,
+        para: status,
+        em: Timestamp.now(),
+        por: userData.email || userData.nome || "usuario"
+      }];
+      await addDoc(collection(db, "orcamentos"), payload);
+    }
+
+    document.getElementById("modalOrcamento").classList.remove("open");
+    limparModal();
+    await carregarOrcamentos();
+  }
+
+  window.editarOrcamento = async (id) => {
+    editandoId = id;
+    const snap = await getDoc(doc(db, "orcamentos", id));
+    if (!snap.exists()) return;
+
+    const o = snap.data();
+    document.getElementById("modalTituloOrc").textContent = "Editar Orçamento";
+    document.getElementById("f-clienteOrc").value = o.nomeCliente || "";
+    document.getElementById("f-telefoneOrc").value = o.telefoneCliente || "";
+    document.getElementById("f-produtoCatalogoOrc").value = o.produtoId || "";
+    document.getElementById("f-produtoOrc").value = o.nomeProduto || "";
+    document.getElementById("f-valorOfertado").value = o.valorOfertado || "";
+    document.getElementById("f-valorMinimo").value = o.valorMinimo || "";
+    document.getElementById("f-statusOrc").value = o.status || "orcamento_enviado";
+    document.getElementById("f-valorFechado").value = o.valorFechado || "";
+    document.getElementById("f-motivoPerda").value = o.motivoPerda || "";
+    document.getElementById("f-obsOrc").value = o.obs || "";
+
+    preencherProdutoSelecionado();
+    toggleMotivoPerda();
+    document.getElementById("modalOrcamento").classList.add("open");
+  };
+
+  window.excluirOrcamento = async (id) => {
+    if (!confirm("Excluir este orçamento?")) return;
+    await deleteDoc(doc(db, "orcamentos", id));
+    await carregarOrcamentos();
+  };
+
+  window.converterOrcamento = async (id) => {
+    const snap = await getDoc(doc(db, "orcamentos", id));
+    if (!snap.exists()) return;
+
+    const o = snap.data();
+    localStorage.setItem(ORCAMENTO_RASCUNHO_KEY, JSON.stringify({
+      orcamentoId: id,
+      produtoId: o.produtoId || "",
+      nomeCliente: o.nomeCliente || "",
+      telefoneCliente: o.telefoneCliente || "",
+      nomeProduto: o.nomeProduto || "",
+      precoUnitario: Number(o.valorFechado || o.valorOfertado || 0),
+      quantidade: 1
+    }));
+    window.location.href = "vendas.html";
+  };
+
+  function limparModal() {
+    ["f-clienteOrc", "f-telefoneOrc", "f-produtoOrc", "f-valorOfertado",
+      "f-valorMinimo", "f-valorFechado", "f-motivoPerda", "f-obsOrc"]
+      .forEach(id => {
+        document.getElementById(id).value = "";
+      });
+
+    document.getElementById("f-produtoCatalogoOrc").value = "";
+    document.getElementById("f-statusOrc").value = "orcamento_enviado";
+    document.getElementById("infoProdutoOrc").style.display = "none";
+    toggleMotivoPerda();
+  }
+</script>
+</body>
+</html>

@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <title>Parcelas</title>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+<div id="loading">Carregando...</div>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo"><img src="logo.png.jpg" alt="NeoApple One"/> NeoApple One</div>
+    <nav>
+      <a href="dashboard.html"><span class="icon">🏠</span> Dashboard</a>
+      <a href="produtos.html"><span class="icon">📦</span> Produtos</a>
+      <a href="entradas.html"><span class="icon">📥</span> Entradas</a>
+      <a href="orcamentos.html"><span class="icon">🧾</span> Orçamentos</a>
+      <a href="vendas.html"><span class="icon">💰</span> Vendas</a>
+      <a href="parcelas.html" class="active"><span class="icon">💳</span> Parcelas</a>
+      <a href="investimentos.html"><span class="icon">🏦</span> Investimentos</a>
+      <a href="saques.html"><span class="icon">💸</span> Saques</a>
+      <a href="usuarios.html" id="menu-usuarios"><span class="icon">👥</span> Usuários</a>
+    </nav>
+    <div class="sidebar-footer">
+      <span class="badge" id="sb-perfil">—</span>
+      <strong id="sb-nome">—</strong>
+      <button class="btn-logout" id="btnLogout">Sair</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="page-title">Controle de Parcelas</div>
+
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+      <button class="btn btn-primary btn-sm" id="filtroTodas">Todas</button>
+      <button class="btn btn-sm" id="filtroAbertas"
+        style="background:#e8f5e9;color:#2e7d32">Em Aberto</button>
+      <button class="btn btn-sm" id="filtroAtraso"
+        style="background:#fdecea;color:#c62828">Em Atraso</button>
+      <button class="btn btn-sm" id="filtroPagas"
+        style="background:#f0f0f0;color:#666">Pagas</button>
+    </div>
+
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;align-items:end">
+      <div class="form-group" style="margin-bottom:0">
+        <label>Período (Data Inicial)</label>
+        <input type="date" id="filtroDataInicio"/>
+      </div>
+      <div class="form-group" style="margin-bottom:0">
+        <label>Período (Data Final)</label>
+        <input type="date" id="filtroDataFim"/>
+      </div>
+      <div class="form-group" style="margin-bottom:0;min-width:180px">
+        <label>Produto</label>
+        <input type="text" id="filtroProdutoParc" placeholder="Nome"/>
+      </div>
+      <div class="form-group" style="margin-bottom:0;min-width:180px">
+        <label>Cliente</label>
+        <input type="text" id="filtroClienteParc" placeholder="Nome ou telefone"/>
+      </div>
+      <div class="form-group" style="margin-bottom:0;min-width:200px">
+        <label>ID da Venda</label>
+        <input type="text" id="filtroVendaId" placeholder="ID"/>
+      </div>
+      <button class="btn btn-primary btn-sm" id="btnAplicarFiltroParc">Aplicar</button>
+      <button class="btn btn-sm" id="btnLimparFiltrosParc" style="background:#eee;color:#333">Limpar</button>
+    </div>
+
+    <div class="table-container">
+      <div class="table-header">
+        <h2>Parcelas</h2>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Produto</th>
+            <th>Cliente</th>
+            <th>Parcela</th>
+            <th>Valor</th>
+            <th>Vencimento</th>
+            <th>Status</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="tbParcelas">
+          <tr><td colspan="7" style="text-align:center;color:#aaa">Carregando...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="modalBaixaParcela">
+  <div class="modal" style="max-width:460px">
+    <h2>Baixa da Parcela</h2>
+    <div class="form-group">
+      <label>Parcela</label>
+      <input type="text" id="b-parcelaInfo" readonly style="background:#f5f5f5"/>
+    </div>
+    <div class="form-group">
+      <label>Data de Pagamento *</label>
+      <input type="date" id="b-dataPagamento"/>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Valor Base (R$)</label>
+        <input type="number" id="b-valorBase" readonly style="background:#f5f5f5"/>
+      </div>
+      <div class="form-group">
+        <label>Juros/Multa (R$)</label>
+        <input type="number" id="b-jurosMulta" step="0.01" value="0"/>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Valor Recebido (R$)</label>
+      <input type="number" id="b-valorRecebido" readonly style="background:#f5f5f5"/>
+    </div>
+    <div class="form-group">
+      <label>Observação</label>
+      <input type="text" id="b-obs" placeholder="Opcional"/>
+    </div>
+    <div class="form-actions">
+      <button class="btn" id="btnCancelarBaixa" style="background:#eee;color:#333">Cancelar</button>
+      <button class="btn btn-success" id="btnConfirmarBaixa">Confirmar Baixa</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+  import { requireAuth, preencherSidebar, logout, db, fmt, fmtData,
+    collection, getDocs, updateDoc, deleteDoc, doc, query, orderBy, Timestamp }
+    from "./app.js";
+
+  let todasParcelas = [];
+  let userData;
+  let filtroStatus = "todas";
+  let parcelaEmBaixaId = null;
+
+  requireAuth(async (user, ud) => {
+    userData = ud;
+    preencherSidebar(ud);
+    document.getElementById("btnLogout").addEventListener("click", logout);
+    await carregarParcelas();
+
+    document.getElementById("filtroTodas").addEventListener("click", () => {
+      filtroStatus = "todas";
+      aplicarFiltros();
+    });
+    document.getElementById("filtroAbertas").addEventListener("click", () => {
+      filtroStatus = "abertas";
+      aplicarFiltros();
+    });
+    document.getElementById("filtroAtraso").addEventListener("click", () => {
+      filtroStatus = "atraso";
+      aplicarFiltros();
+    });
+    document.getElementById("filtroPagas").addEventListener("click", () => {
+      filtroStatus = "pagas";
+      aplicarFiltros();
+    });
+      document.getElementById("btnAplicarFiltroParc").addEventListener("click", aplicarFiltros);
+      document.getElementById("btnLimparFiltrosParc").addEventListener("click", limparFiltros);
+      ["filtroClienteParc", "filtroProdutoParc", "filtroVendaId"].forEach(id => {
+        document.getElementById(id).addEventListener("keydown", (e) => {
+          if (e.key === "Enter") aplicarFiltros();
+        });
+      });
+
+    document.getElementById("b-jurosMulta").addEventListener("input", recalcBaixa);
+    document.getElementById("btnCancelarBaixa").addEventListener("click", fecharModalBaixa);
+    document.getElementById("btnConfirmarBaixa").addEventListener("click", confirmarBaixa);
+  });
+
+    function limparFiltros() {
+      document.getElementById("filtroDataInicio").value = "";
+      document.getElementById("filtroDataFim").value = "";
+      document.getElementById("filtroProdutoParc").value = "";
+      document.getElementById("filtroClienteParc").value = "";
+      document.getElementById("filtroVendaId").value = "";
+      aplicarFiltros();
+    }
+
+  function aplicarFiltros() {
+      const vendaId = document.getElementById("filtroVendaId").value.trim().toLowerCase();
+      const dataInicio = document.getElementById("filtroDataInicio").value;
+      const dataFim = document.getElementById("filtroDataFim").value;
+      const cliente = document.getElementById("filtroClienteParc").value.trim().toLowerCase();
+      const produto = document.getElementById("filtroProdutoParc").value.trim().toLowerCase();
+      const inicio = dataInicio ? new Date(dataInicio).getTime() : null;
+      const fim = dataFim ? new Date(dataFim).getTime() + 86400000 : null;
+    let lista = [...todasParcelas];
+
+    if (filtroStatus === "abertas") {
+      lista = lista.filter(p => p.status === "aberta");
+    } else if (filtroStatus === "atraso") {
+      lista = lista.filter(p => p.atrasada);
+    } else if (filtroStatus === "pagas") {
+      lista = lista.filter(p => p.status === "paga");
+    }
+
+    if (vendaId) {
+      lista = lista.filter(p => (p.vendaId || "").toLowerCase().includes(vendaId));
+    }
+
+    if (cliente) {
+      lista = lista.filter(p => (p.nomeCliente || "").toLowerCase().includes(cliente) ||
+                                (p.telefoneCliente || "").includes(cliente));
+    }
+
+    if (produto) {
+      lista = lista.filter(p => (p.nomeProduto || "").toLowerCase().includes(produto));
+    }
+
+    if (inicio || fim) {
+      lista = lista.filter(p => {
+        const dataVenc = p.vencimento?.toMillis ? p.vencimento.toMillis() : new Date(p.vencimento).getTime();
+        if (inicio && dataVenc < inicio) return false;
+        if (fim && dataVenc > fim) return false;
+        return true;
+      });
+    }
+
+    renderParcelas(lista);
+  }
+
+  async function carregarParcelas() {
+    const snap = await getDocs(query(collection(db, "parcelas"), orderBy("vencimento", "asc")));
+    const hoje = new Date(); hoje.setHours(0,0,0,0);
+    todasParcelas = [];
+    snap.forEach(d => {
+      const p = { id: d.id, ...d.data() };
+      const venc = p.vencimento?.toDate();
+      p.atrasada = p.status === "aberta" && venc && venc < hoje;
+      todasParcelas.push(p);
+    });
+    aplicarFiltros();
+  }
+
+  function renderParcelas(lista) {
+    const tbody = document.getElementById("tbParcelas");
+    tbody.innerHTML = "";
+    if (!lista.length) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:#aaa">Nenhuma parcela encontrada</td></tr>`;
+      return;
+    }
+
+    let totalValor = 0;
+    let totalJurosMulta = 0;
+    let totalRecebido = 0;
+
+    lista.forEach(p => {
+      totalValor += Number(p.valor || 0);
+      totalJurosMulta += Number(p.jurosMulta || 0);
+      totalRecebido += Number(p.valorRecebido || 0);
+
+      let statusBadge;
+      if (p.status === "paga") {
+        statusBadge = `<span class="badge badge-gray">Paga</span>`;
+      } else if (p.atrasada) {
+        statusBadge = `<span class="badge badge-red">Em Atraso</span>`;
+      } else {
+        statusBadge = `<span class="badge badge-green">Em Aberto</span>`;
+      }
+
+      const numLabel = p.tipo === "entrada" ? "Entrada" : `${p.numero}ª Parcela`;
+      const btnVerVenda = p.vendaId
+        ? `<button class="btn btn-sm" style="background:#e8f0fe;color:#1a73e8" onclick="abrirVenda('${p.vendaId}')">🔎 Venda</button>`
+        : "";
+      const acoes = p.status === "aberta" && userData.perfil !== "visualizacao"
+        ? `${btnVerVenda}<button class="btn btn-success btn-sm" onclick="marcarPaga('${p.id}')">✅ Recebido</button>
+           <button class="btn btn-danger btn-sm" onclick="excluirParcela('${p.id}')">🗑️</button>`
+        : (userData.perfil !== "visualizacao"
+          ? `${btnVerVenda}<button class="btn btn-danger btn-sm" onclick="excluirParcela('${p.id}')">🗑️</button>`
+          : "—")
+      ;
+
+      tbody.innerHTML += `
+        <tr style="${p.atrasada ? 'background:#fff8f8' : ''}">
+          <td>${p.nomeProduto || "—"}<br><small style="color:#888">Parcela: ${p.id}</small><br><small style="color:#999">Venda: ${p.vendaId || "—"}</small></td>
+          <td>${p.nomeCliente || "—"}</td>
+          <td>${numLabel}</td>
+          <td>${fmt(p.valor)}${p.jurosMulta ? `<br><small style="color:#c62828">+ ${fmt(p.jurosMulta)} juros/multa</small>` : ""}${p.valorRecebido ? `<br><small style="color:#2e7d32">Recebido: ${fmt(p.valorRecebido)}</small>` : ""}</td>
+          <td>${fmtData(p.vencimento)}</td>
+          <td>${statusBadge}${p.pagoEm ? `<br><small style="color:#666">Pago em: ${fmtData(p.pagoEm)}</small>` : ""}</td>
+          <td>${acoes}</td>
+        </tr>`;
+    });
+
+    tbody.innerHTML += `
+      <tr style="background:#f8fafc;font-weight:700;border-top:2px solid #e5e7eb">
+        <td>TOTAL</td>
+        <td>—</td>
+        <td>—</td>
+        <td>
+          ${fmt(totalValor)}
+          <br><small style="color:#c62828">+ ${fmt(totalJurosMulta)} juros/multa</small>
+          <br><small style="color:#2e7d32">Recebido: ${fmt(totalRecebido)}</small>
+        </td>
+        <td>—</td>
+        <td>—</td>
+        <td>Conferência da listagem atual</td>
+      </tr>`;
+  }
+
+  window.marcarPaga = async (id) => {
+    const parcela = todasParcelas.find(p => p.id === id);
+    if (!parcela) return;
+    parcelaEmBaixaId = id;
+    const numLabel = parcela.tipo === "entrada" ? "Entrada" : `${parcela.numero}ª Parcela`;
+    document.getElementById("b-parcelaInfo").value = `${parcela.nomeCliente || "Cliente"} | ${numLabel}`;
+    document.getElementById("b-dataPagamento").value = new Date().toISOString().split("T")[0];
+    document.getElementById("b-valorBase").value = Number(parcela.valor || 0).toFixed(2);
+    document.getElementById("b-jurosMulta").value = "0.00";
+    document.getElementById("b-obs").value = "";
+    recalcBaixa();
+    document.getElementById("modalBaixaParcela").classList.add("open");
+  };
+
+  function recalcBaixa() {
+    const base = Number(document.getElementById("b-valorBase").value) || 0;
+    const juros = Number(document.getElementById("b-jurosMulta").value) || 0;
+    document.getElementById("b-valorRecebido").value = (base + juros).toFixed(2);
+  }
+
+  function fecharModalBaixa() {
+    parcelaEmBaixaId = null;
+    document.getElementById("modalBaixaParcela").classList.remove("open");
+  }
+
+  async function confirmarBaixa() {
+    if (!parcelaEmBaixaId) return;
+    const dataPagamento = document.getElementById("b-dataPagamento").value;
+    const jurosMulta = Number(document.getElementById("b-jurosMulta").value) || 0;
+    const valorRecebido = Number(document.getElementById("b-valorRecebido").value) || 0;
+    const obs = document.getElementById("b-obs").value.trim();
+    if (!dataPagamento) {
+      alert("Informe a data de pagamento.");
+      return;
+    }
+    const pagamentoDate = new Date(`${dataPagamento}T12:00:00`);
+    await updateDoc(doc(db, "parcelas", parcelaEmBaixaId), {
+      status: "paga",
+      pagoEm: Timestamp.fromDate(pagamentoDate),
+      jurosMulta,
+      valorRecebido,
+      obsBaixa: obs
+    });
+    fecharModalBaixa();
+    await carregarParcelas();
+  }
+
+  window.excluirParcela = async (id) => {
+    if (!confirm("Excluir esta parcela? Esta ação não altera a venda.")) return;
+    await deleteDoc(doc(db, "parcelas", id));
+    await carregarParcelas();
+  };
+
+  window.abrirVenda = (vendaId) => {
+    if (!vendaId) return;
+    window.location.href = `vendas.html?vendaId=${encodeURIComponent(vendaId)}`;
+  };
+</script>
+</body>
+</html>
