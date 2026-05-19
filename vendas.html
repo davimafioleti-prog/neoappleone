@@ -259,6 +259,19 @@
       await carregarVendas();
       setupParcelamento();
       initFiltroVenda();
+
+      // Verificar se há rascunho de conversão de orçamento
+      const rascunhoStr = localStorage.getItem(ORCAMENTO_RASCUNHO_KEY);
+      if (rascunhoStr) {
+        try {
+          const rascunho = JSON.parse(rascunhoStr);
+          localStorage.removeItem(ORCAMENTO_RASCUNHO_KEY);
+          await preencherRascunhoOrcamento(rascunho);
+        } catch (errRascunho) {
+          console.warn("Rascunho inválido, ignorando.", errRascunho);
+          localStorage.removeItem(ORCAMENTO_RASCUNHO_KEY);
+        }
+      }
     } catch (e) {
       console.error(e);
       alert("Erro ao carregar a tela de vendas. Verifique as permissões do Firestore e tente novamente.");
@@ -557,6 +570,43 @@
     itensVenda.splice(index, 1);
     renderItensVenda();
     recalcularTotais();
+  }
+
+  async function preencherRascunhoOrcamento(rascunho) {
+    resetarModalVenda();
+
+    // Preencher dados do cliente
+    document.getElementById("f-cliente").value = rascunho.nomeCliente || "";
+    document.getElementById("f-telefone").value = rascunho.telefoneCliente || "";
+
+    const precoAcordado = Number(rascunho.precoUnitario || 0);
+    const quantidade = Number(rascunho.quantidade || 1);
+
+    if (rascunho.produtoId) {
+      const p = produtosEstoque.find(x => x.id === rascunho.produtoId);
+      if (p) {
+        const custoUnit = (p.precoCompra || 0) + (p.freteCompra || 0) + (p.brinde || 0);
+        const precoFinal = precoAcordado > 0 ? precoAcordado : (p.precoVendaSugerido || 0);
+        itensVenda.push({
+          produtoId: p.id,
+          nomeProduto: p.nome,
+          quantidade: quantidade,
+          precoUnitario: precoFinal,
+          custoUnitario: custoUnit,
+          subtotal: precoFinal * quantidade,
+          custoTotal: custoUnit * quantidade
+        });
+        renderItensVenda();
+        recalcularTotais();
+        // Garantir que o preço total reflita o valor acordado no orçamento
+        if (precoAcordado > 0) {
+          document.getElementById("f-precoVenda").value = (precoAcordado * quantidade).toFixed(2);
+        }
+      }
+    }
+
+    // Abrir o modal mesmo sem produto vinculado (cliente já preenchido)
+    document.getElementById("modalVenda").classList.add("open");
   }
 
   function renderItensVenda() {
