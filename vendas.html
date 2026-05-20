@@ -599,11 +599,11 @@
     document.getElementById("f-adicionarQtd").value = "1";
   }
 
-  function removerItemVenda(index) {
+  window.removerItemVenda = (index) => {
     itensVenda.splice(index, 1);
     renderItensVenda();
     recalcularTotais();
-  }
+  };
 
   async function preencherRascunhoOrcamento(rascunho) {
     resetarModalVenda();
